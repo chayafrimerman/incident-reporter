@@ -1,0 +1,5 @@
+credentials.py
+conversation_logs/
+__pycache__/
+*.pyc
+.env

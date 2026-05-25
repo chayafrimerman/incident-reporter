@@ -1,0 +1,855 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Incident Report — Opus Operations</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:       #0f1117;
+    --surface:  #181c27;
+    --border:   #252a38;
+    --accent:   #e8622a;
+    --accent2:  #f0a050;
+    --text:     #e8eaf0;
+    --muted:    #6b7280;
+    --bot-bg:   #1e2436;
+    --user-bg:  #e8622a;
+    --success:  #22c55e;
+    --input-bg: #13161f;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'DM Sans', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; }
+
+  header { display: flex; align-items: center; gap: 14px; padding: 18px 32px; border-bottom: 1px solid var(--border); background: var(--surface); }
+  .logo-mark { width: 36px; height: 36px; background: var(--accent); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-family: 'DM Mono', monospace; font-size: 14px; font-weight: 500; color: #fff; flex-shrink: 0; }
+  header h1 { font-size: 16px; font-weight: 600; letter-spacing: 0.02em; }
+  header p  { font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .status-pill { margin-left: auto; display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .status-dot  { width: 7px; height: 7px; border-radius: 50%; background: var(--success); animation: pulse 2s infinite; }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+  .main { flex: 1; display: grid; grid-template-columns: 1fr 1fr; max-width: 1400px; width: 100%; margin: 0 auto; min-height: 0; overflow: hidden; }
+
+  /* Chat */
+  .chat-panel { display: flex; flex-direction: column; border-right: 1px solid var(--border); height: calc(100vh - 73px); overflow: hidden; }
+  .panel-header { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 10px; background: var(--surface); }
+  .panel-icon { width: 28px; height: 28px; border-radius: 6px; background: rgba(232,98,42,.15); border: 1px solid rgba(232,98,42,.3); display: flex; align-items: center; justify-content: center; font-size: 13px; }
+  .panel-header h2 { font-size: 13px; font-weight: 600; }
+  .panel-header p  { font-size: 11px; color: var(--muted); margin-top: 1px; }
+
+  .messages { flex: 1; overflow-y: auto; padding: 24px; display: flex; flex-direction: column; gap: 16px; scroll-behavior: smooth; }
+  .messages::-webkit-scrollbar { width: 4px; }
+  .messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .msg { display: flex; gap: 10px; animation: fadeUp .25s ease; }
+  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+  .msg.user { flex-direction: row-reverse; }
+
+  .avatar { width: 30px; height: 30px; border-radius: 50%; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600; margin-top: 2px; }
+  .avatar.bot  { background: rgba(232,98,42,.2); border: 1px solid rgba(232,98,42,.3); color: var(--accent); }
+  .avatar.user { background: var(--accent); color: #fff; }
+
+  .bubble { max-width: 82%; padding: 12px 15px; border-radius: 12px; font-size: 14px; line-height: 1.6; }
+  .msg.bot  .bubble { background: var(--bot-bg); border: 1px solid var(--border); border-top-left-radius: 4px; }
+  .msg.user .bubble { background: var(--user-bg); color: #fff; border-top-right-radius: 4px; }
+
+  .typing-indicator { display: flex; gap: 4px; align-items: center; padding: 14px 15px; }
+  .typing-indicator span { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s infinite; }
+  .typing-indicator span:nth-child(2){animation-delay:.2s}
+  .typing-indicator span:nth-child(3){animation-delay:.4s}
+  @keyframes bounce{0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)}}
+
+  .chat-input-area { padding: 16px 24px; border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; align-items: flex-end; }
+  textarea#userInput { flex: 1; background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px; padding: 11px 14px; resize: none; min-height: 44px; max-height: 120px; line-height: 1.5; transition: border-color .2s; outline: none; }
+  textarea#userInput:focus { border-color: var(--accent); }
+  textarea#userInput::placeholder { color: var(--muted); }
+  button#sendBtn { background: var(--accent); color: #fff; border: none; border-radius: 10px; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background .2s,transform .1s; font-size: 18px; }
+  button#sendBtn:hover   { background: #d4561f; }
+  button#sendBtn:active  { transform: scale(.95); }
+  button#sendBtn:disabled { background: var(--border); cursor: not-allowed; }
+
+  /* ── Voice button ── */
+  button#micBtn { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; width: 44px; height: 44px; cursor: pointer; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .2s; font-size: 18px; user-select: none; -webkit-user-select: none; touch-action: none; position: relative; }
+  button#micBtn:hover { border-color: var(--accent); color: var(--accent); }
+  button#micBtn.recording { background: #ef4444; border-color: #ef4444; color: #fff; animation: micPulse 1s infinite; }
+  button#micBtn.locked    { background: #ef4444; border-color: #ef4444; color: #fff; }
+  @keyframes micPulse { 0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)} 50%{box-shadow:0 0 0 8px rgba(239,68,68,0)} }
+
+  .mic-hint { position: absolute; bottom: 54px; right: 0; background: #1e2436; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 11px; color: var(--muted); white-space: nowrap; pointer-events: none; opacity: 0; transform: translateY(4px); transition: opacity .2s,transform .2s; z-index: 10; }
+  .mic-hint.show { opacity: 1; transform: translateY(0); }
+  .mic-hint.locked-msg { color: var(--success); border-color: var(--success); }
+
+  .recording-bar { display: none; align-items: center; gap: 10px; padding: 10px 16px; background: rgba(239,68,68,.1); border-top: 1px solid rgba(239,68,68,.3); font-size: 12px; color: #ef4444; font-family: 'DM Mono', monospace; }
+  .recording-bar.show { display: flex; }
+  .rec-dot { width: 8px; height: 8px; border-radius: 50%; background: #ef4444; animation: recBlink .8s infinite; }
+  @keyframes recBlink { 0%,100%{opacity:1} 50%{opacity:.2} }
+  .waveform { display: flex; gap: 2px; align-items: center; height: 16px; }
+  .waveform span { width: 3px; background: #ef4444; border-radius: 2px; animation: wave 1s infinite ease-in-out; }
+  .waveform span:nth-child(1){height:4px;animation-delay:.0s} .waveform span:nth-child(2){height:10px;animation-delay:.1s} .waveform span:nth-child(3){height:16px;animation-delay:.2s} .waveform span:nth-child(4){height:8px;animation-delay:.3s} .waveform span:nth-child(5){height:12px;animation-delay:.4s} .waveform span:nth-child(6){height:6px;animation-delay:.5s} .waveform span:nth-child(7){height:14px;animation-delay:.15s}
+  @keyframes wave { 0%,100%{transform:scaleY(1)} 50%{transform:scaleY(1.8)} }
+
+  /* Form */
+  .form-panel { display: flex; flex-direction: column; overflow: hidden; height: calc(100vh - 73px); }
+  .form-body  { flex: 1; overflow-y: auto; padding: 24px; }
+  .form-body::-webkit-scrollbar { width: 4px; }
+  .form-body::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+  .form-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; text-align: center; padding: 40px; }
+  .form-placeholder .big-icon { font-size: 48px; opacity: .3; }
+  .form-placeholder h3 { font-size: 16px; font-weight: 500; opacity: .5; }
+  .form-placeholder p  { font-size: 13px; line-height: 1.6; max-width: 280px; color: var(--muted); }
+
+  .progress-bar  { height: 3px; background: var(--border); overflow: hidden; }
+  .progress-fill { height: 100%; background: linear-gradient(90deg,var(--accent),var(--accent2)); width: 0%; transition: width .5s ease; }
+
+  #incidentForm { display: none; }
+  #incidentForm.visible { display: block; animation: fadeUp .4s ease; }
+
+  .form-section { margin-bottom: 28px; }
+  .section-label { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-family: 'DM Mono', monospace; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
+
+  .field-grid        { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .field-grid.single { grid-template-columns: 1fr; }
+
+  .field { display: flex; flex-direction: column; gap: 5px; }
+  .field label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .04em; }
+  .field label .required { color: var(--accent); margin-left: 2px; }
+
+  .field input,
+  .field textarea,
+  .field select {
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 13px;
+    padding: 9px 12px; outline: none; transition: border-color .2s; width: 100%;
+    appearance: none; -webkit-appearance: none;
+  }
+  .field input:focus,
+  .field textarea:focus,
+  .field select:focus { border-color: var(--accent); }
+  .field textarea     { resize: vertical; min-height: 90px; line-height: 1.5; }
+  .field select       { cursor: pointer; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b7280' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 12px center; padding-right: 32px; }
+  .field select option { background: #1e2436; }
+  .field input[readonly] { opacity: .65; cursor: default; border-style: dashed; }
+
+  .ai-filled { position: relative; }
+  .ai-filled input, .ai-filled textarea { border-color: rgba(232,98,42,.4); background: rgba(232,98,42,.05); }
+  .ai-badge { position: absolute; top: -6px; right: 0; font-size: 9px; font-family: 'DM Mono', monospace; background: var(--accent); color: #fff; padding: 1px 6px; border-radius: 3px; letter-spacing: .06em; }
+
+  .field-loading { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 2px; display: none; }
+  .field-loading.show { display: block; }
+
+  /* Footer */
+  .form-footer { padding: 16px 24px; border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; align-items: center; }
+  .submit-btn { flex: 1; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 13px 20px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s,transform .1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
+  .submit-btn:hover   { background: #d4561f; }
+  .submit-btn:active  { transform: scale(.98); }
+  .submit-btn:disabled { background: var(--border); cursor: not-allowed; }
+  .reset-btn { background: transparent; color: var(--muted); border: 1px solid var(--border); border-radius: 10px; padding: 13px 16px; font-family: 'DM Sans', sans-serif; font-size: 13px; cursor: pointer; transition: all .2s; }
+  .reset-btn:hover { color: var(--text); border-color: var(--muted); }
+
+  /* Success */
+  .success-overlay { display: none; flex-direction: column; align-items: center; justify-content: center; height: 100%; gap: 16px; text-align: center; padding: 40px; }
+  .success-overlay.show { display: flex; }
+  .success-icon { width: 64px; height: 64px; border-radius: 50%; background: rgba(34,197,94,.15); border: 2px solid var(--success); display: flex; align-items: center; justify-content: center; font-size: 28px; }
+  .success-overlay h3 { font-size: 20px; font-weight: 600; }
+  .success-overlay p  { font-size: 14px; color: var(--muted); max-width: 280px; line-height: 1.6; }
+  .new-report-btn { background: transparent; color: var(--accent); border: 1px solid var(--accent); border-radius: 10px; padding: 11px 24px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500; cursor: pointer; transition: all .2s; margin-top: 8px; }
+  .new-report-btn:hover { background: rgba(232,98,42,.1); }
+
+  @media (max-width: 768px) {
+    .main { grid-template-columns: 1fr; }
+    .chat-panel { height: 50vh; border-right: none; border-bottom: 1px solid var(--border); }
+    .form-panel { height: 50vh; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo-mark">OO</div>
+  <div>
+    <h1>Incident Report Assistant</h1>
+    <p>Opus Operations · Security & Concierge</p>
+  </div>
+  <div class="status-pill">
+    <div class="status-dot"></div>
+    AI Online
+  </div>
+  <button onclick="enableManualMode()" style="margin-left:12px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--muted)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">✏️ Fill Out Manually</button>
+</header>
+
+<div class="main">
+
+  <!-- ── Chat Panel ── -->
+  <div class="chat-panel">
+    <div class="panel-header">
+      <div class="panel-icon">💬</div>
+      <div>
+        <h2>Tell Me What Happened</h2>
+        <p>The AI will guide you through the incident details</p>
+      </div>
+    </div>
+    <div class="messages" id="messages"></div>
+    <div class="recording-bar" id="recordingBar">
+      <div class="rec-dot"></div>
+      <div class="waveform"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
+      <span id="recStatus">Recording... release to send</span>
+    </div>
+    <div class="chat-input-area">
+      <textarea id="userInput" rows="1" placeholder="Describe what happened..."></textarea>
+      <button id="micBtn" title="Hold to record">🎤<span class="mic-hint" id="micHint">↑ Slide up to lock</span></button>
+      <button id="sendBtn" title="Send">➤</button>
+    </div>
+  </div>
+
+  <!-- ── Form Panel ── -->
+  <div class="form-panel">
+    <div class="panel-header">
+      <div class="panel-icon">📋</div>
+      <div>
+        <h2>Incident Report Form</h2>
+        <p>Review, complete, and submit to doForms</p>
+      </div>
+    </div>
+    <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+
+    <div class="form-body">
+
+      <div class="form-placeholder" id="formPlaceholder">
+        <div class="big-icon">📝</div>
+        <h3>Form will appear here</h3>
+        <p>Chat with the AI on the left. Once all details are gathered, the form will be pre-filled and ready to submit.</p>
+      </div>
+
+      <div class="success-overlay" id="successOverlay">
+        <div class="success-icon">✓</div>
+        <h3>Report Submitted</h3>
+        <p>The incident report has been saved to doForms and the team has been notified.</p>
+        <button class="new-report-btn" onclick="resetAll()">Start New Report</button>
+      </div>
+
+      <form id="incidentForm" onsubmit="submitForm(event)">
+
+        <!-- ── Job Information ── -->
+        <div class="form-section">
+          <div class="section-label">Job Information</div>
+          <div class="field-grid">
+
+            <!-- Address: customer.name values -->
+            <div class="field">
+              <label>Address <span class="required">*</span></label>
+              <select id="sel_address" name="Job_Address" onchange="onAddressChange(this.value)">
+                <option value="">— Select address —</option>
+              </select>
+              <div class="field-loading" id="load_address">Loading...</div>
+            </div>
+
+            <!-- Customer: auto-filled, or dropdown if multiple parent_names -->
+            <div class="field">
+              <label>Customer <span class="required">*</span></label>
+              <input type="text" name="Customer_Name" id="input_Customer_Name"
+                     readonly placeholder="Auto-filled from address">
+              <select id="sel_customer" style="display:none" onchange="onCustomerPicked(this.value)">
+                <option value="">— Select customer —</option>
+              </select>
+            </div>
+
+            <!-- Supervisor: employee.full_name values -->
+            <div class="field">
+              <label>Supervisor Name <span class="required">*</span></label>
+              <select id="sel_supervisor" name="Name_Of_Supervisor">
+                <option value="">— Select supervisor —</option>
+              </select>
+              <div class="field-loading" id="load_supervisor">Loading...</div>
+            </div>
+
+            <div class="field">
+              <label>Date & Time of Report</label>
+              <input type="datetime-local" name="Date_Time_Of_Report">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Incident Details ── -->
+        <div class="form-section">
+          <div class="section-label">Incident Details</div>
+          <div class="field-grid">
+
+            <!-- Employee: employee.full_name values -->
+            <div class="field">
+              <label>Employee Name <span class="required">*</span></label>
+              <select id="sel_employee" name="Employee_name">
+                <option value="">— Select employee —</option>
+              </select>
+              <div class="field-loading" id="load_employee">Loading...</div>
+            </div>
+
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Incident Type</label>
+              <input type="text" name="Incident_Type" placeholder="e.g. Disturbance">
+            </div>
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Unit / Location</label>
+              <input type="text" name="Unit_Number_Or_Location" placeholder="Unit number or area">
+            </div>
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Date & Time of Incident</label>
+              <input type="datetime-local" name="Date_Time_Of_Incident">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- ── Narrative ── -->
+        <div class="form-section">
+          <div class="section-label">Narrative — AI Generated</div>
+          <div class="field-grid single">
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Describe What Happened In Detail <span class="required">*</span></label>
+              <textarea name="Describe_What_Happened" rows="5" placeholder="Full incident narrative will appear here..."></textarea>
+            </div>
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Who Was Notified?</label>
+              <textarea name="Who_Was_Notified" rows="2" placeholder="Names and roles notified"></textarea>
+            </div>
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>How Was It Resolved?</label>
+              <textarea name="How_Was_It_Resolved" rows="2" placeholder="Resolution details"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- ── Additional Notes ── -->
+        <div class="form-section">
+          <div class="section-label">Additional Notes</div>
+          <div class="field-grid single">
+            <div class="field">
+              <label>Additional Information</label>
+              <textarea name="Additional_Information" rows="3" placeholder="Anything else to add..."></textarea>
+            </div>
+            <div class="field ai-filled" id="section_prev_incidents" style="display:none">
+              <span class="ai-badge">AI</span>
+              <label>Previous Undocumented Incidents</label>
+              <textarea name="Previous_Undocumented_Incidents" rows="3" placeholder="Prior incidents not yet reported..."></textarea>
+            </div>
+          </div>
+        </div>
+
+      </form>
+    </div>
+
+    <div class="form-footer" id="formFooter" style="display:none">
+      <button class="reset-btn" onclick="resetForm()">↺ Reset</button>
+      <button class="submit-btn" id="submitBtn" onclick="submitForm(event)">
+        <span>Submit to doForms</span> →
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const API_BASE = "";
+  let conversationHistory = [];
+  let formReady = false;
+
+  function nowLocal() {
+    const d = new Date();
+    d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+    return d.toISOString().slice(0, 16);
+  }
+  document.querySelector('[name="Date_Time_Of_Report"]').value = nowLocal();
+
+  // ── Load all dropdowns on page load ─────────────────────────
+  async function loadDropdowns() {
+    // Addresses (customer.name)
+    document.getElementById("load_address").classList.add("show");
+    try {
+      const res   = await fetch(`${API_BASE}/api/dropdown/addresses`);
+      const names = await res.json();
+      const sel   = document.getElementById("sel_address");
+      names.forEach(name => {
+        const opt = document.createElement("option");
+        opt.value = name; opt.textContent = name;
+        sel.appendChild(opt);
+      });
+      console.log(`Loaded ${names.length} addresses`);
+    } catch(e) { console.error("Failed to load addresses:", e); }
+    document.getElementById("load_address").classList.remove("show");
+
+    // Employees — used for both supervisor and employee dropdowns
+    document.getElementById("load_employee").classList.add("show");
+    document.getElementById("load_supervisor").classList.add("show");
+    try {
+      const res   = await fetch(`${API_BASE}/api/dropdown/employees`);
+      const names = await res.json();
+      ["sel_employee", "sel_supervisor"].forEach(selId => {
+        const sel = document.getElementById(selId);
+        names.forEach(name => {
+          const opt = document.createElement("option");
+          opt.value = name; opt.textContent = name;
+          sel.appendChild(opt);
+        });
+      });
+      console.log(`Loaded ${names.length} employees`);
+    } catch(e) { console.error("Failed to load employees:", e); }
+    document.getElementById("load_employee").classList.remove("show");
+    document.getElementById("load_supervisor").classList.remove("show");
+  }
+
+  // ── Address selected → look up parent_name(s) ───────────────
+  async function onAddressChange(address) {
+    const custInput = document.getElementById("input_Customer_Name");
+    const custSel   = document.getElementById("sel_customer");
+
+    // Reset customer fields
+    custInput.value = "";
+    custInput.style.display = "block";
+    custSel.style.display   = "none";
+    custSel.innerHTML = "<option value=''>— Select customer —</option>";
+
+    if (!address) return;
+
+    try {
+      const res     = await fetch(`${API_BASE}/api/dropdown/customers?name=${encodeURIComponent(address)}`);
+      const parents = await res.json();
+
+      if (parents.length === 0) {
+        custInput.value = "No customer on file";
+      } else if (parents.length === 1) {
+        // One match — auto-fill the text input
+        custInput.value = parents[0];
+      } else {
+        // Multiple matches — hide text input, show dropdown
+        custInput.style.display = "none";
+        custSel.style.display   = "block";
+        parents.forEach(p => {
+          const opt = document.createElement("option");
+          opt.value = p; opt.textContent = p;
+          custSel.appendChild(opt);
+        });
+      }
+    } catch(e) {
+      console.error("Failed to load customers:", e);
+    }
+  }
+
+  // ── Customer picked from dropdown (multiple match case) ──────
+  function onCustomerPicked(value) {
+    document.getElementById("input_Customer_Name").value = value;
+  }
+
+  // ── Get current customer value (from input or dropdown) ──────
+  function getCustomerValue() {
+    const custSel = document.getElementById("sel_customer");
+    if (custSel.style.display !== "none") return custSel.value;
+    return document.getElementById("input_Customer_Name").value;
+  }
+
+  // ── Chat ─────────────────────────────────────────────────────
+  window.addEventListener('load', async () => {
+    // Clear any stale session on every page load
+    document.cookie = "incident_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
+    try { await fetch(`${API_BASE}/api/reset`, { method: "POST", credentials: "include" }); } catch(e) {}
+    await loadDropdowns();
+    addMessage("bot", "Hi! / ¡Hola! What happened? / ¿Qué pasó?");
+  });
+
+  function addMessage(role, text) {
+    const container = document.getElementById("messages");
+    const div    = document.createElement("div");
+    div.className = `msg ${role}`;
+    const avatar = document.createElement("div");
+    avatar.className = `avatar ${role}`;
+    avatar.textContent = role === "bot" ? "AI" : "You";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = text;
+    div.appendChild(avatar);
+    div.appendChild(bubble);
+    container.appendChild(div);
+    setTimeout(() => container.scrollTop = container.scrollHeight, 50);
+  }
+
+  function showTyping() {
+    const container = document.getElementById("messages");
+    const div = document.createElement("div");
+    div.className = "msg bot";
+    div.id = "typingIndicator";
+    const avatar = document.createElement("div");
+    avatar.className = "avatar bot";
+    avatar.textContent = "AI";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble typing-indicator";
+    bubble.innerHTML = "<span></span><span></span><span></span>";
+    div.appendChild(avatar);
+    div.appendChild(bubble);
+    container.appendChild(div);
+    setTimeout(() => container.scrollTop = container.scrollHeight, 50);
+  }
+
+  function removeTyping() {
+    const el = document.getElementById("typingIndicator");
+    if (el) el.remove();
+  }
+
+  document.getElementById("sendBtn").addEventListener("click", sendMessage);
+  document.getElementById("userInput").addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+  });
+
+  async function sendMessage() {
+    const input = document.getElementById("userInput");
+    const text  = input.value.trim();
+    if (!text) return;
+    if (formReady && !window.awaitingFeedback) return;
+    if (formReady && window.awaitingFeedback) {
+      addMessage("user", text);
+      window.awaitingFeedback = false;
+      fetch(`${API_BASE}/api/feedback`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ feedback: text }),
+      });
+      addMessage("bot", "Thanks — feedback saved!");
+      input.value = "";
+      input.style.height = "auto";
+      return;
+    }
+    input.value = "";
+    input.style.height = "auto";
+    addMessage("user", text);
+    conversationHistory.push({ role: "user", content: text });
+    document.getElementById("sendBtn").disabled = true;
+    showTyping();
+
+    try {
+      const res  = await fetch(`${API_BASE}/api/chat`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ messages: conversationHistory }),
+      });
+      const data = await res.json();
+      removeTyping();
+
+      if (data.error) { addMessage("bot", "Sorry, something went wrong. Please try again."); return; }
+
+      const reply = data.reply;
+      conversationHistory.push({ role: "assistant", content: reply });
+
+      if (reply.includes("STORY_READY")) {
+        const jsonMatch = reply.match(/```json\s*([\s\S]*?)```/);
+        if (jsonMatch) {
+          try {
+            const fields = JSON.parse(jsonMatch[1]);
+            populateForm(fields);
+            addMessage("bot", "Got it — the form on the right is filled in. Select the address, supervisor, and employee from the dropdowns, then submit.");
+            setTimeout(() => {
+              addMessage("bot", "Before you submit — was there anything I asked that was unnecessary, confusing, or that I got wrong? Any feedback helps us improve.");
+              window.awaitingFeedback = true;
+            }, 800);
+          } catch(e) {
+            addMessage("bot", reply.replace("STORY_READY","").replace(/```json[\s\S]*?```/,"").trim());
+          }
+        }
+      } else {
+        addMessage("bot", reply);
+        updateProgress();
+      }
+    } catch(err) {
+      removeTyping();
+      addMessage("bot", "Connection error. Is the Flask server running?");
+    } finally {
+      document.getElementById("sendBtn").disabled = false;
+      document.getElementById("userInput").focus();
+    }
+  }
+
+  // ── Populate AI fields ───────────────────────────────────────
+  function populateForm(fields) {
+    formReady = true;
+    document.getElementById("formPlaceholder").style.display = "none";
+    document.getElementById("incidentForm").classList.add("visible");
+    document.getElementById("formFooter").style.display = "flex";
+    document.getElementById("progressFill").style.width = "100%";
+
+    const mapping = {
+      Describe_What_Happened:  "Describe_What_Happened",
+      Who_Was_Notified:        "Who_Was_Notified",
+      Incident_Type:           "Incident_Type",
+      Unit_Number_Or_Location: "Unit_Number_Or_Location",
+      Date_Time_Of_Incident:   "Date_Time_Of_Incident",
+    };
+
+    const form = document.getElementById("incidentForm");
+    for (const [key, fieldName] of Object.entries(mapping)) {
+      if (!fields[key]) continue;
+      const el = form.querySelector(`[name="${fieldName}"]`);
+      if (!el) continue;
+      if (el.type === "datetime-local") {
+        try {
+          const d = new Date(fields[key]);
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          el.value = d.toISOString().slice(0, 16);
+        } catch { el.value = ""; }
+      } else {
+        el.value = fields[key];
+      }
+    }
+
+    // Combine resolution + next steps
+    const resolved  = fields.How_Was_It_Resolved || "";
+    const nextSteps = fields.Next_Steps || "";
+    const combined  = [
+      resolved,
+      nextSteps ? "The following actions are still pending: " + nextSteps : ""
+    ].filter(Boolean).join("\n\n");
+
+    const resolvedEl = form.querySelector('[name="How_Was_It_Resolved"]');
+    if (resolvedEl && combined) resolvedEl.value = combined;
+   
+    const prevSection = document.getElementById("section_prev_incidents");
+    if (fields.Previous_Undocumented_Incidents && fields.Previous_Undocumented_Incidents.trim()) {
+      prevSection.style.display = "block";
+    } else {
+      prevSection.style.display = "none";
+    }
+
+    form.scrollIntoView({ behavior: "smooth" });
+    document.getElementById("userInput").placeholder = "Any feedback on how the AI did? (optional)";
+  }
+
+  function updateProgress() {
+    const count = conversationHistory.filter(m => m.role === "user").length;
+    document.getElementById("progressFill").style.width = Math.min(count * 12, 85) + "%";
+  }
+
+  // ── Submit ───────────────────────────────────────────────────
+  async function submitForm(e) {
+    if (e) e.preventDefault();
+
+    const address    = document.getElementById("sel_address").value;
+    const customer   = getCustomerValue();
+    const employee   = document.getElementById("sel_employee").value;
+    const supervisor = document.getElementById("sel_supervisor").value;
+
+    if (!address)                              { alert("Please select an address.");   return; }
+    if (!customer || customer === "No customer on file") { alert("Please select a customer.");  return; }
+    if (!employee)                             { alert("Please select an employee.");  return; }
+    if (!supervisor)                           { alert("Please select a supervisor."); return; }
+
+    const form = document.getElementById("incidentForm");
+    const btn  = document.getElementById("submitBtn");
+    const data = {};
+    new FormData(form).forEach((val, key) => { if (val) data[key] = val; });
+
+    // Set dropdown values explicitly
+    data.Job_Address        = address;
+    data.Customer_Name      = customer;
+    data.Employee_name      = employee;
+    data.Name_Of_Supervisor = supervisor;
+
+    ["Date_Time_Of_Incident", "Date_Time_Of_Report"].forEach(k => {
+      if (data[k]) data[k] = new Date(data[k]).toISOString().replace("Z", "");
+    });
+
+    btn.disabled = true;
+    btn.innerHTML = "<span>Submitting...</span>";
+
+    try {
+      const res    = await fetch(`${API_BASE}/api/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.success) {
+        document.getElementById("incidentForm").style.display = "none";
+        document.getElementById("formFooter").style.display = "none";
+        document.getElementById("successOverlay").classList.add("show");
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = "<span>Submit to doForms</span> →";
+        alert("Submission failed: " + (result.error || "Unknown error"));
+      }
+    } catch(err) {
+      btn.disabled = false;
+      btn.innerHTML = "<span>Submit to doForms</span> →";
+      alert("Connection error. Is the Flask server running?");
+    }
+  }
+
+  // ── Reset ────────────────────────────────────────────────────
+  function resetForm() {
+    if (!confirm("Reset the form? AI-filled data will be cleared.")) return;
+    document.getElementById("incidentForm").reset();
+    document.querySelector('[name="Date_Time_Of_Report"]').value = nowLocal();
+    document.getElementById("input_Customer_Name").value = "";
+    document.getElementById("input_Customer_Name").style.display = "block";
+    document.getElementById("sel_customer").style.display = "none";
+    document.getElementById("sel_customer").innerHTML = "<option value=''>— Select customer —</option>";
+  }
+
+  async function resetAll() {
+    try { await fetch(`${API_BASE}/api/reset`, { method: "POST", credentials: "include" }); } catch(e) {}
+    location.reload();
+  }
+
+  document.getElementById("userInput").addEventListener("input", function() {
+    this.style.height = "auto";
+    this.style.height = Math.min(this.scrollHeight, 120) + "px";
+  });
+
+  // ── Voice input (WhatsApp-style) ────────────────────────────
+  const micBtn       = document.getElementById('micBtn');
+  const micHint      = document.getElementById('micHint');
+  const recordingBar = document.getElementById('recordingBar');
+  const recStatus    = document.getElementById('recStatus');
+
+  let recognition   = null;
+  let isRecording   = false;
+  let isLocked      = false;
+  let holdStartY    = 0;
+  let lockThreshold = 60; // px to swipe up to lock
+  let finalTranscript = '';
+
+  // Check browser support
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    micBtn.title = "Voice not supported in this browser (use Chrome or Edge)";
+    micBtn.style.opacity = "0.3";
+    micBtn.style.cursor = "not-allowed";
+  } else {
+    setupRecognition();
+    setupMicEvents();
+  }
+
+  function setupRecognition() {
+    recognition = new SpeechRecognition();
+    recognition.continuous     = true;
+    recognition.interimResults = true;
+    recognition.lang           = ""; // auto-detect language
+
+    recognition.onresult = (e) => {
+      finalTranscript = "";
+      for (let i = e.resultIndex; i < e.results.length; i++) {
+        if (e.results[i].isFinal) finalTranscript += e.results[i][0].transcript;
+      }
+    };
+
+    recognition.onend = () => {
+      if (!isLocked) finishRecording();
+      else recognition.start(); // keep going in locked mode
+    };
+
+    recognition.onerror = (e) => {
+      if (e.error !== "aborted") {
+        stopRecording();
+        addMessage("bot", "Microphone error: " + e.error + ". Please try typing instead.");
+      }
+    };
+  }
+
+  function setupMicEvents() {
+    // ── Mouse events (desktop) ──
+    micBtn.addEventListener("mousedown", (e) => { e.preventDefault(); holdStartY = e.clientY; startRecording(); });
+    document.addEventListener("mouseup",  (e) => { if (isRecording && !isLocked) { checkSwipeUp(e.clientY); finishRecording(); } });
+    document.addEventListener("mousemove",(e) => { if (isRecording && !isLocked) checkLock(e.clientY); });
+
+    // ── Touch events (mobile) ──
+    micBtn.addEventListener("touchstart", (e) => { e.preventDefault(); holdStartY = e.touches[0].clientY; startRecording(); }, { passive: false });
+    document.addEventListener("touchend",  (e) => { if (isRecording && !isLocked) { checkSwipeUp(e.changedTouches[0].clientY); finishRecording(); } });
+    document.addEventListener("touchmove", (e) => { if (isRecording && !isLocked) checkLock(e.touches[0].clientY); }, { passive: true });
+
+    // ── Tap to stop when locked ──
+    micBtn.addEventListener("click", () => { if (isLocked) { isLocked = false; finishRecording(); } });
+  }
+
+  function checkLock(currentY) {
+    const swipedUp = holdStartY - currentY;
+    if (swipedUp > lockThreshold && !isLocked) {
+      isLocked = true;
+      micBtn.classList.add("locked");
+      micHint.textContent = "🔒 Locked — tap to stop";
+      micHint.classList.add("locked-msg");
+      recStatus.textContent = "Recording... tap mic to stop";
+    } else if (!isLocked) {
+      const pct = Math.min(swipedUp / lockThreshold, 1);
+      micHint.style.opacity = pct > 0.1 ? "1" : "0";
+    }
+  }
+
+  function checkSwipeUp(currentY) {
+    const swipedUp = holdStartY - currentY;
+    if (swipedUp > lockThreshold) {
+      isLocked = true;
+    }
+  }
+
+  function startRecording() {
+    if (isRecording) return;
+    isRecording = true;
+    isLocked    = false;
+    finalTranscript = "";
+
+    micBtn.classList.add("recording");
+    micHint.classList.add("show");
+    micHint.textContent = "↑ Slide up to lock";
+    micHint.classList.remove("locked-msg");
+    recordingBar.classList.add("show");
+    recStatus.textContent = "Recording... release to send";
+
+    try { recognition.start(); } catch(e) {}
+  }
+
+  function stopRecording() {
+    isRecording = false;
+    isLocked    = false;
+    micBtn.classList.remove("recording", "locked");
+    micHint.classList.remove("show", "locked-msg");
+    recordingBar.classList.remove("show");
+    try { recognition.stop(); } catch(e) {}
+  }
+
+  function finishRecording() {
+    if (!isRecording) return;
+    try { recognition.stop(); } catch(e) {}
+    stopRecording();
+
+    const text = finalTranscript.trim();
+    if (text) {
+      document.getElementById("userInput").value = text;
+      sendMessage(); // auto-send
+    }
+  }
+  function enableManualMode() {
+    // Hide chat panel, expand form to full width
+    document.querySelector('.chat-panel').style.display = 'none';
+    document.querySelector('.main').style.gridTemplateColumns = '1fr';
+
+    // Show the form immediately
+    document.getElementById('formPlaceholder').style.display = 'none';
+    document.getElementById('incidentForm').classList.add('visible');
+    document.getElementById('formFooter').style.display = 'flex';
+    document.getElementById('progressFill').style.width = '100%';
+
+    // Remove AI badges since nothing is AI-filled
+    document.querySelectorAll('.ai-badge').forEach(el => el.remove());
+    document.querySelectorAll('.ai-filled').forEach(el => el.classList.remove('ai-filled'));
+
+    // Mark form as ready so chat input doesn't interfere
+    formReady = true;
+  }
+</script>
+</body>
+</html>
