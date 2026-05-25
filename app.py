@@ -419,6 +419,10 @@ def feedback():
     print(f"[FEEDBACK] Saved to {log_file}")
     return jsonify({"ok": True})
 
+@app.route("/robots.txt")
+def robots():
+    return send_from_directory("static", "robots.txt")
+
 
 if __name__ == "__main__":
     app.run(debug=False, port=5000)
