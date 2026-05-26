@@ -323,72 +323,72 @@ def reset_session():
     return resp
 
 
-# # ── Submit to doForms ────────────────────────────────────────────
-# @app.route("/api/submit", methods=["POST"])
-# def submit():
-#     data = request.json
-
-#     try:
-#         token = get_cached_token()
-#     except Exception as e:
-#         return jsonify({"error": f"Token error: {e}"}), 500
-
-#     headers = {
-#         "Authorization": f"Bearer {token}",
-#         "Content-Type": "application/json",
-#     }
-
-#     field_map = {
-#         "Address":         ("text",     data.get("Job_Address", "")),
-#         "Customer":        ("text",     data.get("Customer_Name", "")),
-#         "Supervisor":      ("text",     data.get("Name_Of_Supervisor", "")),
-#         "Employee":        ("text",     data.get("Employee_name", "")),
-#         "Incident_Type":   ("text",     data.get("Incident_Type", "")),
-#         "Unit":            ("text",     data.get("Unit_Number_Or_Location", "")),
-#         "What_Happened":   ("text",     data.get("Describe_What_Happened", "")),
-#         "Notified":        ("text",     data.get("Who_Was_Notified", "")),
-#         "Resolution":      ("text",     data.get("How_Was_It_Resolved", "")),
-#         "Notes":           ("text",     data.get("Additional_Information", "")),
-#         "Multi_Incident":  ("text",     data.get("Previous_Undocumented_Incidents", "")),
-#         "Date_of_Incident": ("datetime", data.get("Date_Time_Of_Incident", "")),
-#         "Date_of_Report":   ("datetime", data.get("Date_Time_Of_Report", "")),
-#     }
-
-#     fields = []
-#     for name, (dtype, value) in field_map.items():
-#         if value:
-#             if dtype == "text":
-#                 fields.append({"name": name, "text": value})
-#             elif dtype == "datetime":
-#                 clean_dt = value.replace("Z", "").split(".")[0]
-#                 fields.append({"name": name, "dateTime": clean_dt})
-
-#     payload = {
-#         "formKey": FORM_KEY,
-#         "projectKey": PROJECT_KEY,
-#         "fields": fields,
-#     }
-#     print("Submitting payload:", json.dumps(payload, indent=2))
-#     r = requests.post(f"{DOFORMS_BASE}/api/v2/submissions", headers=headers, json=payload)
-#     print("doForms submit status:", r.status_code)
-#     print("doForms submit response:", r.text)
-
-#     if r.status_code in (200, 201):
-#         # Clear the session after successful submit
-#         sid = get_session_id()
-#         if sid in _sessions:
-#             del _sessions[sid]
-#         return jsonify({"success": True, "response": r.json()})
-#     else:
-#         return jsonify({"success": False, "error": r.text}), r.status_code
-
-# For testing purposes 
+# ── Submit to doForms ────────────────────────────────────────────
 @app.route("/api/submit", methods=["POST"])
 def submit():
     data = request.json
-    print("=== MOCK SUBMIT (doForms disabled) ===")
-    print(json.dumps(data, indent=2))
-    return jsonify({"success": True, "response": {"mock": True}})
+
+    try:
+        token = get_cached_token()
+    except Exception as e:
+        return jsonify({"error": f"Token error: {e}"}), 500
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    field_map = {
+        "Address":         ("text",     data.get("Job_Address", "")),
+        "Customer":        ("text",     data.get("Customer_Name", "")),
+        "Supervisor":      ("text",     data.get("Name_Of_Supervisor", "")),
+        "Employee":        ("text",     data.get("Employee_name", "")),
+        "Incident_Type":   ("text",     data.get("Incident_Type", "")),
+        "Unit":            ("text",     data.get("Unit_Number_Or_Location", "")),
+        "What_Happened":   ("text",     data.get("Describe_What_Happened", "")),
+        "Notified":        ("text",     data.get("Who_Was_Notified", "")),
+        "Resolution":      ("text",     data.get("How_Was_It_Resolved", "")),
+        "Notes":           ("text",     data.get("Additional_Information", "")),
+        "Multi_Incident":  ("text",     data.get("Previous_Undocumented_Incidents", "")),
+        "Date_of_Incident": ("datetime", data.get("Date_Time_Of_Incident", "")),
+        "Date_of_Report":   ("datetime", data.get("Date_Time_Of_Report", "")),
+    }
+
+    fields = []
+    for name, (dtype, value) in field_map.items():
+        if value:
+            if dtype == "text":
+                fields.append({"name": name, "text": value})
+            elif dtype == "datetime":
+                clean_dt = value.replace("Z", "").split(".")[0]
+                fields.append({"name": name, "dateTime": clean_dt})
+
+    payload = {
+        "formKey": FORM_KEY,
+        "projectKey": PROJECT_KEY,
+        "fields": fields,
+    }
+    print("Submitting payload:", json.dumps(payload, indent=2))
+    r = requests.post(f"{DOFORMS_BASE}/api/v2/submissions", headers=headers, json=payload)
+    print("doForms submit status:", r.status_code)
+    print("doForms submit response:", r.text)
+
+    if r.status_code in (200, 201):
+        # Clear the session after successful submit
+        sid = get_session_id()
+        if sid in _sessions:
+            del _sessions[sid]
+        return jsonify({"success": True, "response": r.json()})
+    else:
+        return jsonify({"success": False, "error": r.text}), r.status_code
+
+# For testing purposes 
+# @app.route("/api/submit", methods=["POST"])
+# def submit():
+#     data = request.json
+#     print("=== MOCK SUBMIT (doForms disabled) ===")
+#     print(json.dumps(data, indent=2))
+#     return jsonify({"success": True, "response": {"mock": True}})
 
 
 @app.route("/api/feedback", methods=["POST"])
