@@ -163,9 +163,132 @@
     .chat-panel { height: 50vh; border-right: none; border-bottom: 1px solid var(--border); }
     .form-panel { height: 50vh; }
   }
+
+  /* ── Login overlay ── */
+  #loginOverlay {
+    position: fixed; inset: 0; z-index: 9999;
+    background: var(--bg);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #loginOverlay.hidden { display: none; }
+
+  .login-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 40px 36px;
+    width: 100%; max-width: 400px;
+    display: flex; flex-direction: column; gap: 0;
+  }
+  .login-logo {
+    width: 44px; height: 44px; background: var(--accent); border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'DM Mono', monospace; font-size: 15px; font-weight: 500;
+    color: #fff; margin-bottom: 20px;
+  }
+  .login-card h2 { font-size: 20px; font-weight: 600; margin: 0 0 4px; }
+  .login-card .login-sub { font-size: 13px; color: var(--muted); margin: 0 0 28px; }
+
+  .login-field { display: flex; flex-direction: column; gap: 6px; margin-bottom: 14px; }
+  .login-field label { font-size: 11px; font-weight: 500; color: var(--muted); letter-spacing: .04em; }
+  .login-field input {
+    background: var(--input-bg); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 14px;
+    padding: 11px 14px; outline: none; transition: border-color .2s; width: 100%;
+  }
+  .login-field input:focus { border-color: var(--accent); }
+  .login-field input::placeholder { color: var(--muted); }
+
+  .login-btn {
+    width: 100%; background: var(--accent); color: #fff; border: none;
+    border-radius: 10px; padding: 13px; font-family: 'DM Sans', sans-serif;
+    font-size: 14px; font-weight: 600; cursor: pointer;
+    transition: background .2s, transform .1s; margin-top: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 8px;
+  }
+  .login-btn:hover   { background: #d4561f; }
+  .login-btn:active  { transform: scale(.98); }
+  .login-btn:disabled { background: var(--border); cursor: not-allowed; }
+
+  .login-error {
+    font-size: 12px; color: #ef4444; margin-top: 10px;
+    min-height: 18px; text-align: center;
+  }
+  .login-back {
+    background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 12px; cursor: pointer; padding: 0; margin-top: 12px;
+    text-decoration: underline; align-self: center;
+  }
+  .login-back:hover { color: var(--text); }
+
+  .otp-hint { font-size: 12px; color: var(--muted); margin-bottom: 14px; line-height: 1.5; }
+  .otp-hint strong { color: var(--text); }
+
+  /* resend link */
+  .resend-row { text-align: center; margin-top: 10px; }
+  .resend-btn {
+    background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 12px; cursor: pointer; padding: 0; text-decoration: underline;
+  }
+  .resend-btn:hover { color: var(--accent); }
+  .resend-btn:disabled { opacity: .4; cursor: default; text-decoration: none; }
+
+  /* logout button in header */
+  #logoutBtn {
+    margin-left: 12px; background: transparent; color: var(--muted);
+    border: 1px solid var(--border); border-radius: 8px;
+    padding: 7px 14px; font-family: 'DM Sans', sans-serif; font-size: 12px;
+    cursor: pointer; transition: all .2s;
+  }
+  #logoutBtn:hover { color: var(--text); border-color: var(--muted); }
 </style>
 </head>
 <body>
+
+<!-- ── Login Overlay ── -->
+<div id="loginOverlay">
+  <div class="login-card">
+    <div class="login-logo">OO</div>
+
+    <!-- Step 1: Email -->
+    <div id="loginStepEmail">
+      <h2>Sign in</h2>
+      <p class="login-sub">Opus Operations · Incident Reporter</p>
+      <div class="login-field">
+        <label>WORK OR PERSONAL EMAIL</label>
+        <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="email">
+      </div>
+      <button class="login-btn" id="loginEmailBtn" onclick="loginRequestOtp()">
+        Continue →
+      </button>
+      <div class="login-error" id="loginEmailErr"></div>
+    </div>
+
+    <!-- Step 2: OTP -->
+    <div id="loginStepOtp" style="display:none">
+      <h2>Check your email</h2>
+      <p class="login-sub">Opus Operations · Incident Reporter</p>
+      <p class="otp-hint">We sent a 6-digit code to <strong id="otpTargetEmail"></strong>.<br>It expires in 10 minutes.</p>
+      <div class="login-field">
+        <label>ONE-TIME CODE</label>
+        <input type="text" id="loginOtp" placeholder="123456" maxlength="6"
+               inputmode="numeric" autocomplete="one-time-code"
+               style="letter-spacing:6px;font-size:22px;font-family:'DM Mono',monospace;text-align:center;">
+      </div>
+      <button class="login-btn" id="loginOtpBtn" onclick="loginVerifyOtp()">
+        Verify →
+      </button>
+      <div class="login-error" id="loginOtpErr"></div>
+      <div class="resend-row">
+        <button class="resend-btn" id="resendBtn" onclick="loginResend()">Resend code</button>
+      </div>
+      <div style="text-align:center">
+        <button class="login-back" onclick="loginBack()">← Use a different email</button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <header>
   <div class="logo-mark">OO</div>
@@ -178,6 +301,7 @@
     AI Online
   </div>
   <button onclick="enableManualMode()" style="margin-left:12px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--muted)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">✏️ Fill Out Manually</button>
+  <button id="logoutBtn" onclick="doLogout()" title="Sign out">Sign out</button>
 </header>
 
 <div class="main">
@@ -454,15 +578,164 @@
     return document.getElementById("input_Customer_Name").value;
   }
 
-  // ── Chat ─────────────────────────────────────────────────────
+  // ════════════════════════════════════════════════════════════
+  // AUTH
+  // ════════════════════════════════════════════════════════════
+  let _loginEmail = "";
+
+  async function loginRequestOtp() {
+    const email = document.getElementById("loginEmail").value.trim();
+    const errEl = document.getElementById("loginEmailErr");
+    const btn   = document.getElementById("loginEmailBtn");
+    errEl.textContent = "";
+    if (!email) { errEl.textContent = "Please enter your email."; return; }
+
+    btn.disabled = true;
+    btn.textContent = "Sending…";
+
+    try {
+      const res  = await fetch(`${API_BASE}/api/auth/request-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.ok) {
+        _loginEmail = email;
+        document.getElementById("otpTargetEmail").textContent = email;
+        document.getElementById("loginStepEmail").style.display = "none";
+        document.getElementById("loginStepOtp").style.display   = "block";
+        document.getElementById("loginOtp").focus();
+      } else if (data.error === "invalid_email") {
+        errEl.textContent = "That email isn't in our system. Please try your work or personal email.";
+      } else {
+        errEl.textContent = data.error || "Something went wrong. Please try again.";
+      }
+    } catch(e) {
+      errEl.textContent = "Connection error. Is the server running?";
+    }
+
+    btn.disabled = false;
+    btn.textContent = "Continue →";
+  }
+
+  async function loginVerifyOtp() {
+    const otp   = document.getElementById("loginOtp").value.trim();
+    const errEl = document.getElementById("loginOtpErr");
+    const btn   = document.getElementById("loginOtpBtn");
+    errEl.textContent = "";
+    if (!otp) { errEl.textContent = "Please enter the code."; return; }
+
+    btn.disabled = true;
+    btn.textContent = "Verifying…";
+
+    try {
+      const res  = await fetch(`${API_BASE}/api/auth/verify-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: _loginEmail, otp }),
+      });
+      const data = await res.json();
+
+      if (res.ok && data.ok) {
+        dismissLogin();
+      } else {
+        errEl.textContent = data.error || "Verification failed. Please try again.";
+        btn.disabled = false;
+        btn.textContent = "Verify →";
+      }
+    } catch(e) {
+      errEl.textContent = "Connection error.";
+      btn.disabled = false;
+      btn.textContent = "Verify →";
+    }
+  }
+
+  async function loginResend() {
+    const btn = document.getElementById("resendBtn");
+    btn.disabled = true;
+    document.getElementById("loginOtpErr").textContent = "";
+
+    try {
+      const res = await fetch(`${API_BASE}/api/auth/request-otp`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: _loginEmail }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) {
+        document.getElementById("loginOtpErr").style.color = "var(--success)";
+        document.getElementById("loginOtpErr").textContent = "New code sent!";
+        setTimeout(() => {
+          document.getElementById("loginOtpErr").style.color = "#ef4444";
+          document.getElementById("loginOtpErr").textContent = "";
+        }, 3000);
+      } else {
+        document.getElementById("loginOtpErr").textContent = data.error || "Failed to resend.";
+      }
+    } catch(e) {
+      document.getElementById("loginOtpErr").textContent = "Connection error.";
+    }
+
+    // Re-enable after 30 s to prevent spam
+    setTimeout(() => { btn.disabled = false; }, 30000);
+  }
+
+  function loginBack() {
+    document.getElementById("loginStepOtp").style.display   = "none";
+    document.getElementById("loginStepEmail").style.display = "block";
+    document.getElementById("loginOtp").value = "";
+    document.getElementById("loginOtpErr").textContent = "";
+  }
+
+  async function dismissLogin() {
+    document.getElementById("loginOverlay").classList.add("hidden");
+    await initApp();
+  }
+
+  async function doLogout() {
+    await fetch(`${API_BASE}/api/auth/logout`, { method: "POST", credentials: "include" });
+    location.reload();
+  }
+
+  // ── Enter key support on login inputs ───────────────────────
+  document.getElementById("loginEmail").addEventListener("keydown", e => {
+    if (e.key === "Enter") loginRequestOtp();
+  });
+  document.getElementById("loginOtp").addEventListener("keydown", e => {
+    if (e.key === "Enter") loginVerifyOtp();
+  });
+
+  // ── Boot: check device token, show/skip login ────────────────
   window.addEventListener('load', async () => {
+    try {
+      const res  = await fetch(`${API_BASE}/api/auth/check`, { credentials: "include" });
+      const data = await res.json();
+      if (data.ok) {
+        // Valid device token — go straight in
+        document.getElementById("loginOverlay").classList.add("hidden");
+        await initApp();
+      } else {
+        // Show login, pre-focus email field
+        document.getElementById("loginEmail").focus();
+      }
+    } catch(e) {
+      // Server unreachable — still show login
+      document.getElementById("loginEmail").focus();
+    }
+  });
+
+  async function initApp() {
     // Clear any stale session on every page load
     document.cookie = "incident_session=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;";
     try { await fetch(`${API_BASE}/api/reset`, { method: "POST", credentials: "include" }); } catch(e) {}
     await loadDropdowns();
     addMessage("bot", "Hi! / ¡Hola! What happened? / ¿Qué pasó?");
-  });
+  }
 
+  // ── Chat ─────────────────────────────────────────────────────
   function addMessage(role, text) {
     const container = document.getElementById("messages");
     const div    = document.createElement("div");

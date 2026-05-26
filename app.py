@@ -4,6 +4,12 @@ from flask_cors import CORS
 import os
 import uuid
 import json
+import hashlib
+import smtplib
+import random
+import time
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 from pathlib import Path
 from utils import (ANTHROPIC_API_KEY,
@@ -11,23 +17,228 @@ from utils import (ANTHROPIC_API_KEY,
     phase3_check, phase4_check, phase4_update_who, finalize,
     EMPTY_STATE
 )
-from credentials import get_cached_token,  get_db_conn, FORM_KEY, PROJECT_KEY, DOFORMS_BASE
+from credentials import get_cached_token, get_db_conn, FORM_KEY, PROJECT_KEY, DOFORMS_BASE, IMAP_EMAIL, IMAP_APP_PASSWORD
 
 
+# ── Email / SMTP config ─────────────────────────────────────────
+# Set these in your environment or credentials file.
+# Example for Gmail: use an App Password (not your real password).
+# AFTER
+SMTP_HOST     = "smtp.gmail.com"
+SMTP_PORT     = 587
+SMTP_USER     = IMAP_EMAIL       
+SMTP_PASSWORD = IMAP_APP_PASSWORD 
+SMTP_FROM     = IMAP_EMAIL
 
+# How long (seconds) an OTP stays valid
+OTP_TTL = 600   # 10 minutes
 
-                         
-
+# How long (seconds) a device token stays valid
+DEVICE_TOKEN_TTL = 60 * 60 * 24 * 365 * 20   
 
 
 app = Flask(__name__, static_folder="static")
 app.secret_key = os.urandom(24)
 CORS(app, supports_credentials=True)
 
-# ── In-memory session store (keyed by session_id cookie) ────────
-# Structure: { session_id: { "state": {...}, "conversation": [...], "phase": int, "done": bool } }
+# ── In-memory stores ─────────────────────────────────────────────
+# OTP store: { email: { "otp_hash": str, "expires": float } }
+_otp_store = {}
+
+# Device token store: { token: { "email": str, "expires": float } }
+_device_tokens = {}
+
+# Chat session store (unchanged)
 _sessions = {}
 
+
+# ════════════════════════════════════════════════════════════════
+# AUTH HELPERS
+# ════════════════════════════════════════════════════════════════
+
+def _hash(value: str) -> str:
+    return hashlib.sha256(value.encode()).hexdigest()
+
+
+def _email_exists(email: str) -> bool:
+    """Return True if email is @opusoperations.com OR matches employee.email / personal_email."""
+    
+    if email.endswith("@opusoperations.com"):
+        return True
+    
+    try:
+        conn   = get_db_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT TOP 1 1
+            FROM employee
+            WHERE (LOWER(email) = LOWER(?) OR LOWER(personal_email) = LOWER(?))
+              AND employee_status != 'T'
+            """,
+            email, email
+        )
+        found = cursor.fetchone() is not None
+        conn.close()
+        return found
+    except Exception as e:
+        print(f"[AUTH] DB error checking email: {e}")
+        return False
+
+
+def _send_otp_email(to_email: str, otp: str):
+    """Send a plain OTP email via SMTP."""
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = "Your Opus Operations login code"
+    msg["From"]    = SMTP_FROM
+    msg["To"]      = to_email
+
+    text_body = f"""\
+Your one-time login code for Opus Operations Incident Reporter:
+
+    {otp}
+
+This code expires in 10 minutes. Do not share it with anyone.
+"""
+    html_body = f"""\
+<html><body style="font-family:sans-serif;background:#0f1117;color:#e8eaf0;padding:32px;">
+  <div style="max-width:400px;margin:0 auto;background:#181c27;border:1px solid #252a38;border-radius:12px;padding:32px;">
+    <div style="background:#e8622a;border-radius:8px;width:40px;height:40px;display:flex;align-items:center;
+                justify-content:center;font-weight:600;color:#fff;font-size:14px;margin-bottom:20px;">OO</div>
+    <h2 style="margin:0 0 8px;font-size:18px;">Your login code</h2>
+    <p style="color:#6b7280;font-size:13px;margin:0 0 24px;">Opus Operations · Incident Reporter</p>
+    <div style="background:#13161f;border:1px solid #252a38;border-radius:10px;padding:20px;
+                text-align:center;font-family:monospace;font-size:32px;letter-spacing:8px;
+                color:#e8622a;font-weight:600;">{otp}</div>
+    <p style="color:#6b7280;font-size:12px;margin:20px 0 0;text-align:center;">
+      Expires in 10 minutes &nbsp;·&nbsp; Do not share this code
+    </p>
+  </div>
+</body></html>
+"""
+    msg.attach(MIMEText(text_body, "plain"))
+    msg.attach(MIMEText(html_body, "html"))
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_FROM, to_email, msg.as_string())
+
+
+# ════════════════════════════════════════════════════════════════
+# AUTH ROUTES
+# ════════════════════════════════════════════════════════════════
+
+@app.route("/api/auth/request-otp", methods=["POST"])
+def auth_request_otp():
+    """
+    Body: { "email": "user@example.com" }
+    Validates email against employee table, generates OTP, sends it.
+    """
+    data  = request.json or {}
+    email = (data.get("email") or "").strip().lower()
+
+    if not email:
+        return jsonify({"error": "Email is required."}), 400
+
+    if not _email_exists(email):
+        return jsonify({"error": "invalid_email"}), 403
+
+    # Generate 6-digit OTP
+    otp = str(random.randint(100000, 999999))
+
+    # Store hashed OTP
+    _otp_store[email] = {
+        "otp_hash": _hash(otp),
+        "expires":  time.time() + OTP_TTL,
+    }
+
+    try:
+        _send_otp_email(email, otp)
+    except Exception as e:
+        print(f"[AUTH] Failed to send OTP email to {email}: {e}")
+        return jsonify({"error": "Failed to send email. Please try again."}), 500
+
+    print(f"[AUTH] OTP sent to {email}")
+    return jsonify({"ok": True})
+
+
+@app.route("/api/auth/verify-otp", methods=["POST"])
+def auth_verify_otp():
+    """
+    Body: { "email": "...", "otp": "123456" }
+    On success: sets a long-lived device_token cookie.
+    """
+    data  = request.json or {}
+    email = (data.get("email") or "").strip().lower()
+    otp   = (data.get("otp")   or "").strip()
+
+    record = _otp_store.get(email)
+    if not record:
+        return jsonify({"error": "No OTP was requested for this email."}), 400
+
+    if time.time() > record["expires"]:
+        del _otp_store[email]
+        return jsonify({"error": "Code expired. Please request a new one."}), 400
+
+    if _hash(otp) != record["otp_hash"]:
+        return jsonify({"error": "Incorrect code. Please try again."}), 400
+
+    # Valid — clean up
+    del _otp_store[email]
+
+    # Issue device token (long-lived)
+    token = str(uuid.uuid4())
+    _device_tokens[token] = {
+        "email":   email,
+        "expires": time.time() + DEVICE_TOKEN_TTL,
+    }
+
+    resp = jsonify({"ok": True, "email": email})
+    resp.set_cookie(
+        "device_token", token,
+        max_age=DEVICE_TOKEN_TTL,
+        httponly=True,
+        samesite="Lax",
+    )
+    print(f"[AUTH] Verified OTP for {email}, device token issued.")
+    return resp
+
+
+@app.route("/api/auth/check", methods=["GET"])
+def auth_check():
+    """
+    Called on page load. Returns { ok: true, email } if device token is valid,
+    otherwise { ok: false }.
+    """
+    token  = request.cookies.get("device_token")
+    record = _device_tokens.get(token) if token else None
+
+    if record and time.time() < record["expires"]:
+        return jsonify({"ok": True, "email": record["email"]})
+
+    # Expired or missing — remove stale entry
+    if token and token in _device_tokens:
+        del _device_tokens[token]
+
+    return jsonify({"ok": False})
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+def auth_logout():
+    """Clears device token cookie and removes from store."""
+    token = request.cookies.get("device_token")
+    if token and token in _device_tokens:
+        del _device_tokens[token]
+    resp = jsonify({"ok": True})
+    resp.set_cookie("device_token", "", expires=0)
+    return resp
+
+
+# ════════════════════════════════════════════════════════════════
+# EXISTING CODE — unchanged below this line
+# ════════════════════════════════════════════════════════════════
 
 def save_conversation(sid, state, conversation):
     log_dir = Path(__file__).parent / "conversation_logs"
@@ -59,9 +270,9 @@ def get_session_id():
 def get_or_create_session(sid):
     if sid not in _sessions:
         _sessions[sid] = {
-            "state": __import__("copy").deepcopy(EMPTY_STATE),  # deep copy prevents shared who list
+            "state": __import__("copy").deepcopy(EMPTY_STATE),
             "conversation": [],
-            "phase": 1,          # 1=story, 2=narrative, 3=when, 4=people, 5=done
+            "phase": 1,
             "phase2_turns": 0,
             "phase3_turns": 0,
             "phase4_turns": 0,
@@ -150,7 +361,6 @@ def chat():
     conversation = sess["conversation"]
     phase        = sess["phase"]
 
-    # The latest user message
     if not messages:
         resp = jsonify({"reply": "Hi! What happened? Tell me as much detail as you can."})
         resp.set_cookie("incident_session", sid, samesite="Lax")
@@ -158,7 +368,6 @@ def chat():
 
     latest_user_msg = messages[-1]["content"]
 
-    # ── PHASE 1: First message — extract from opening story ──────
     if phase == 1:
         conversation.append({"role": "user", "content": latest_user_msg})
 
@@ -171,24 +380,20 @@ def chat():
 
         sess["phase"] = 2
 
-        # If a multi-incident was detected, ask about it first
         if multi and not state.get("multi_incident_handled"):
             q = f"You mentioned a prior incident: \"{multi}\" — was a report already filed for that?"
             conversation.append({"role": "assistant", "content": q})
             sess["_pending_multi"] = multi
             reply = q
         else:
-            # Move straight into phase 2 check
             reply = _advance_phase2(sess)
 
         resp = jsonify({"reply": reply})
         resp.set_cookie("incident_session", sid, samesite="Lax")
         return resp
 
-    # ── PHASES 2–4: Ongoing conversation ────────────────────────
     conversation.append({"role": "user", "content": latest_user_msg})
 
-    # Handle pending multi-incident answer
     if sess.get("_pending_multi"):
         multi = sess.pop("_pending_multi")
         lower = latest_user_msg.lower()
@@ -198,7 +403,6 @@ def chat():
             state["previous_incidents"] = f"Undocumented prior incident: {multi}"
         state["multi_incident_handled"] = True
 
-    # Run the appropriate phase
     if phase == 2:
         reply = _advance_phase2(sess)
     elif phase == 3:
@@ -206,7 +410,6 @@ def chat():
     elif phase == 4:
         reply = _advance_phase4(sess)
     elif phase == 5:
-        # Session already complete — wipe it and start fresh
         import copy
         _sessions[sid] = {
             "state": copy.deepcopy(EMPTY_STATE),
@@ -236,13 +439,11 @@ def chat():
 # ── Phase helpers ────────────────────────────────────────────────
 
 def _advance_phase2(sess):
-    """Run one step of phase 2 (narrative completeness). Returns bot reply string."""
     state        = sess["state"]
     conversation = sess["conversation"]
 
     sess["phase2_turns"] = sess.get("phase2_turns", 0) + 1
     if sess["phase2_turns"] > 12:
-        # Give up and move on
         state = phase2_update_state(state, conversation)
         sess["state"] = state
         sess["phase"] = 3
@@ -251,7 +452,6 @@ def _advance_phase2(sess):
     check = phase2_check(state, conversation)
 
     if check.get("done"):
-        # Update state from full conversation
         sess["state"] = phase2_update_state(state, conversation)
         sess["phase"] = 3
         return _advance_phase3(sess)
@@ -262,7 +462,6 @@ def _advance_phase2(sess):
 
 
 def _advance_phase3(sess):
-    """Run one step of phase 3 (date/time). Returns bot reply string."""
     state        = sess["state"]
     conversation = sess["conversation"]
 
@@ -286,11 +485,9 @@ def _advance_phase3(sess):
 
 
 def _advance_phase4(sess):
-    """Run one step of phase 4 (people). Returns bot reply string or STORY_READY JSON."""
     state        = sess["state"]
     conversation = sess["conversation"]
 
-    # Sync who array before checking
     sess["state"]["who"] = phase4_update_who(state, conversation)
     state = sess["state"]
 
@@ -309,11 +506,8 @@ def _advance_phase4(sess):
 
 
 def _generate_report(sess):
-    """Run phase 5 — finalize and return STORY_READY payload."""
     sess["phase"] = 5
     result = finalize(sess["state"])
-
-    # Build the STORY_READY string that the frontend expects
     json_str = json.dumps(result, indent=2)
     save_conversation(sess.get("sid", "unknown"), sess["state"], sess["conversation"])
     return f"Got it — let me write that up for you.\n\nSTORY_READY\n```json\n{json_str}\n```"
@@ -381,21 +575,12 @@ def submit():
     print("doForms submit response:", r.text)
 
     if r.status_code in (200, 201):
-        # Clear the session after successful submit
         sid = get_session_id()
         if sid in _sessions:
             del _sessions[sid]
         return jsonify({"success": True, "response": r.json()})
     else:
         return jsonify({"success": False, "error": r.text}), r.status_code
-
-# For testing purposes 
-# @app.route("/api/submit", methods=["POST"])
-# def submit():
-#     data = request.json
-#     print("=== MOCK SUBMIT (doForms disabled) ===")
-#     print(json.dumps(data, indent=2))
-#     return jsonify({"success": True, "response": {"mock": True}})
 
 
 @app.route("/api/feedback", methods=["POST"])
@@ -407,8 +592,6 @@ def feedback():
         return jsonify({"ok": False})
 
     log_dir = Path(__file__).parent / "conversation_logs"
-    
-    # Find the most recent log file for this session
     matches = sorted(log_dir.glob(f"*_{sid[:8]}.json"), reverse=True)
     if not matches:
         return jsonify({"ok": False, "error": "Log file not found"})
@@ -425,6 +608,7 @@ def feedback():
     
     print(f"[FEEDBACK] Saved to {log_file}")
     return jsonify({"ok": True})
+
 
 @app.route("/robots.txt")
 def robots():
