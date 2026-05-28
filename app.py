@@ -555,14 +555,26 @@ def submit():
         "Date_of_Report":   ("datetime", data.get("Date_Time_Of_Report", "")),
     }
 
+    print("Incoming data keys:", list(data.keys()))
+    print("Date_Time_Of_Incident:", data.get("Date_Time_Of_Incident"))
+    print("Date_Time_Of_Report:", data.get("Date_Time_Of_Report"))
+
     fields = []
     for name, (dtype, value) in field_map.items():
         if value:
             if dtype == "text":
                 fields.append({"name": name, "text": value})
             elif dtype == "datetime":
-                clean_dt = value.replace("Z", "").split(".")[0]
-                fields.append({"name": name, "dateTime": clean_dt})
+                # Normalize then reformat as MM/DD/YYYY HH:MM:SS AM/PM for the doForms text field
+                clean_dt = value.strip().replace("Z", "").split(".")[0].replace(" ", "T")
+                if len(clean_dt) == 16:   # missing seconds → append :00
+                    clean_dt += ":00"
+                try:
+                    dt = datetime.fromisoformat(clean_dt)
+                    formatted = dt.strftime("%m/%d/%Y %I:%M:%S %p")
+                except Exception:
+                    formatted = value   # fallback to raw value if parse fails
+                fields.append({"name": name, "text": formatted})
 
     payload = {
         "formKey": FORM_KEY,

@@ -932,9 +932,8 @@
     data.Employee_name      = employee;
     data.Name_Of_Supervisor = supervisor;
 
-    ["Date_Time_Of_Incident", "Date_Time_Of_Report"].forEach(k => {
-      if (data[k]) data[k] = new Date(data[k]).toISOString().replace("Z", "");
-    });
+    // datetime-local values are already "YYYY-MM-DDTHH:MM" local time — pass through as-is.
+    // The backend normalizes them to ISO 8601 (YYYY-MM-DDTHH:MM:SS) before sending to doForms.
 
     btn.disabled = true;
     btn.innerHTML = "<span>Submitting...</span>";
