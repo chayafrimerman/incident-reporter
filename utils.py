@@ -94,7 +94,7 @@ Return ONLY valid JSON with this exact structure — no markdown, no explanation
 FIELD RULES:
 - "when": Date and/or time if mentioned. Format: "May 14, 2026 at 7:00 AM". Leave blank if not mentioned.
 - "who": Array of people: [{{"name": "John Smith", "title": "Security Guard"}}].
-  If name unknown use "Male Subject 1", "Female Subject 1", etc.
+  Only use "Male Subject 1", "Female Subject 1", etc. if the person is completely anonymous (described only as "a man", "someone", with zero identifying info). If any partial name was mentioned, use it. Flag unnamed subjects so phase 4 will ask for their names.
 - "where": Exact location if mentioned.
 - "what": Full story of what happened - do not drop details.
 - "notification": Who was notified, if mentioned.
@@ -125,15 +125,17 @@ CONVERSATION SO FAR:
 Your job: decide if we have enough narrative detail to write a complete report.
  
 We need all of these covered:
-1. WHERE — must include a street address OR property name (either one is sufficient — do not ask for both), ask about the specific area only if not mentioned and it is something that actually happened in a specific area - not something that happened over the phone. If the user gave a street address like "22 Main Street", that is complete — do not ask for a property name on top of it.
+1. WHERE — must include a street address OR property name (either one is sufficient — do not ask for both). If the incident happened over the phone, by text, email, or any remote communication, do NOT ask for a location — set it as "Remote / Phone Call" and move on. If the user gave a street address like "22 Main Street", that is complete — do not ask for a property name on top of it.
 2. WHAT happened (clear factual account)
 3. WHO was notified
 4. What ACTION was already taken
 5. What NEXT STEPS are planned (or explicitly none)
- 
+
 IMPORTANT: Do NOT ask about previous incidents or prior reporting unless the user's own story explicitly mentioned events on more than one separate date. If their story is a single incident, never bring up prior incidents at all.
 Do NOT ask about date or time under any circumstances — that is handled in a separate phase.
-Don't drop details. 
+Don't drop details.
+
+CRITICAL — NO REPEATED QUESTIONS: Before asking anything, carefully read the full conversation above. If a question has already been asked and answered — even if the answer was partial, "I don't know", or a variation — do NOT ask it again. Accept what was given and move on.
 
 If anything from the list above is missing, pick the SINGLE most important missing piece and ask ONE question about it only.
 No "and", no two-part questions.
@@ -261,8 +263,14 @@ This includes the REPORTER — the person who submitted this report. If their na
 - Empty string for title = MISSING
 - Never guess a title — only use what was explicitly stated
 
-If anyone is incomplete, ask ONE specific question about ONE person only.
-CRITICAL: If the user said "I don't know", "I don't have that", or any similar response about a person's title, accept it and move on.
+CRITICAL — NO REPEATED QUESTIONS: Read the full conversation above before asking anything. If a name or title has already been asked about and answered — even partially — do NOT ask again. Accept what was given.
+
+NAME BEFORE PLACEHOLDER: If anyone is currently listed as "Male Subject 1", "Female Subject 1", or similar, ask if the reporter knows their actual name BEFORE accepting the placeholder. Only keep the placeholder if the reporter confirms they don't know.
+
+OBVIOUS TITLES: Do not ask for the title/role of someone whose role is already self-evident from how they were described — "police", "police officer", "resident", "nurse", "security guard", "security officer" are their own titles. Only ask if the role is genuinely unclear.
+
+If anyone is still incomplete after the above rules, ask ONE specific question about ONE person only.
+CRITICAL: If the user said "I don't know", "I don't have that", or any similar response about a person's name or title, accept it and move on.
 
 Return ONLY valid JSON — no markdown, no explanation:
 - If more info needed: {{"done": false, "question": "your question"}}
@@ -337,7 +345,7 @@ Generate a complete incident report from this data:
 Return ONLY valid JSON — no markdown, no explanation:
 {{
   "status": "complete",
-  "Describe_What_Happened": "Full factual chronological narrative. Use full names and titles for all people. Use 'approximately' for unverified times. Facts only. CRITICAL: Include every single detail from the state data — do not summarize, compress, or drop anything. Do not invent or infer details not in the state. Preserve the exact method of communication (email, phone call, in person, etc.). The narrative should be as detailed and complete as the source data allows.",
+  "Describe_What_Happened": "Full factual chronological narrative. Use full names and titles for all people. Use 'approximately' for unverified times. Facts only. CRITICAL: Include every single detail from the state data — do not summarize, compress, or drop anything. Do not invent or infer details not in the state. Preserve the exact method of communication (email, phone call, voice note, in person, etc.). When describing any communication (voice note, phone call, text, email), always name both the sender and recipient explicitly — never use ambiguous pronouns like 'they' or 'he' where it is unclear who is meant. Do not repeat the same fact more than once. The narrative should be as detailed and complete as the source data allows.",
   "Who_Was_Notified": "Full names and roles of everyone notified",
   "How_Was_It_Resolved": "Actions already taken",
   "Next_Steps": "Actions still needed, or 'No further action planned'",
