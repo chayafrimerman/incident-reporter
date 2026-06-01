@@ -221,6 +221,7 @@ def auth_verify_otp():
         max_age=DEVICE_TOKEN_TTL,
         httponly=True,
         samesite="Lax",
+        secure = True,
     )
     print(f"[AUTH] Verified OTP for {email}, device token issued.")
     return resp
@@ -385,7 +386,7 @@ def chat():
 
     if not messages:
         resp = jsonify({"reply": "Hi! What happened? Tell me as much detail as you can."})
-        resp.set_cookie("incident_session", sid, samesite="Lax")
+        resp.set_cookie("incident_session", sid, samesite="Lax", secure = True)
         return resp
 
     latest_user_msg = messages[-1]["content"]
@@ -454,7 +455,7 @@ def chat():
         reply = "Something went wrong. Please refresh and start over."
 
     resp = jsonify({"reply": reply})
-    resp.set_cookie("incident_session", sid, samesite="Lax")
+    resp.set_cookie("incident_session", sid, samesite="Lax", secure = True)
     return resp
 
 
