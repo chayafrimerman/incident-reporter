@@ -45,11 +45,30 @@ CORS(app, supports_credentials=True)
 # OTP store: { email: { "otp_hash": str, "expires": float } }
 _otp_store = {}
 
-# Device token store: { token: { "email": str, "expires": float } }
-_device_tokens = {}
-
 # Chat session store (unchanged)
 _sessions = {}
+
+# ── Persistent device token store ────────────────────────────────
+_TOKENS_FILE = Path(__file__).parent / ".device_tokens.json"
+
+def _load_tokens():
+    if _TOKENS_FILE.exists():
+        try:
+            data = json.loads(_TOKENS_FILE.read_text())
+            # Drop already-expired tokens on load
+            now = time.time()
+            return {k: v for k, v in data.items() if v.get("expires", 0) > now}
+        except Exception:
+            pass
+    return {}
+
+def _save_tokens(tokens):
+    try:
+        _TOKENS_FILE.write_text(json.dumps(tokens))
+    except Exception as e:
+        print(f"[AUTH] Warning: could not save device tokens: {e}")
+
+_device_tokens = _load_tokens()
 
 
 # ════════════════════════════════════════════════════════════════
@@ -194,6 +213,7 @@ def auth_verify_otp():
         "email":   email,
         "expires": time.time() + DEVICE_TOKEN_TTL,
     }
+    _save_tokens(_device_tokens)
 
     resp = jsonify({"ok": True, "email": email})
     resp.set_cookie(
@@ -221,6 +241,7 @@ def auth_check():
     # Expired or missing — remove stale entry
     if token and token in _device_tokens:
         del _device_tokens[token]
+        _save_tokens(_device_tokens)
 
     return jsonify({"ok": False})
 
@@ -231,6 +252,7 @@ def auth_logout():
     token = request.cookies.get("device_token")
     if token and token in _device_tokens:
         del _device_tokens[token]
+        _save_tokens(_device_tokens)
     resp = jsonify({"ok": True})
     resp.set_cookie("device_token", "", expires=0)
     return resp
@@ -539,43 +561,103 @@ def submit():
         "Content-Type": "application/json",
     }
 
-    field_map = {
-        "Address":         ("text",     data.get("Job_Address", "")),
-        "Customer":        ("text",     data.get("Customer_Name", "")),
-        "Supervisor":      ("text",     data.get("Name_Of_Supervisor", "")),
-        "Employee":        ("text",     data.get("Employee_name", "")),
-        "Incident_Type":   ("text",     data.get("Incident_Type", "")),
-        "Unit":            ("text",     data.get("Unit_Number_Or_Location", "")),
-        "What_Happened":   ("text",     data.get("Describe_What_Happened", "")),
-        "Notified":        ("text",     data.get("Who_Was_Notified", "")),
-        "Resolution":      ("text",     data.get("How_Was_It_Resolved", "")),
-        "Notes":           ("text",     data.get("Additional_Information", "")),
-        "Multi_Incident":  ("text",     data.get("Previous_Undocumented_Incidents", "")),
-        "Date_of_Incident": ("datetime", data.get("Date_Time_Of_Incident", "")),
-        "Date_of_Report":   ("datetime", data.get("Date_Time_Of_Report", "")),
-    }
+    # Determine Report_Type from Incident_Type (fallback if AI didn't set it)
+    _incident_type = data.get("Incident_Type", "")
+    _jobsite_types = {"Trespassing / Unathorized access", "Disturbance", "Missing / Stolen Package", "Resident Issue"}
+    _emergency_types = {"Criminal Activity", "Violence and Altercations", "Emergencies"}
+    if data.get("Report_Type"):
+        report_type = data["Report_Type"]
+    elif _incident_type in _jobsite_types:
+        report_type = "Jobsite Incident Report"
+    elif _incident_type in _emergency_types:
+        report_type = "Emergency Incident Report"
+    else:
+        report_type = ""
+
+    # Follow_Up_Actions_Needed: AI-generated next steps + any manual additions
+    follow_up_parts = [
+        data.get("Follow_Up_Actions_Needed", ""),
+        data.get("Additional_Information", ""),
+        data.get("Previous_Undocumented_Incidents", ""),
+    ]
+    follow_up = "\n\n".join(p for p in follow_up_parts if p.strip())
+
+    # Build Email_To recipient list
+    _supervisor = data.get("Name_Of_Supervisor", "").strip()
+    # _email_list = [
+    #     "hr@opusoperations.com",
+    #     "reports@opusoperations.com",
+    #     "aharon@opusoperations.com",
+    #     "thomas@opusoperations.com",
+    #     "jasonw@opusoperations.com",
+    # ]
+    _email_list = [
+        "chayaf@opusoperations.com",
+    ]
+    if _supervisor == "Stacy Nunez":
+        # _email_list.append("stacyn@opusoperations.com")
+        _email_list.append("mushkafrimsch@gmail.com")
+    # elif _supervisor == "Jesus Ramos":
+    #     _email_list.extend(["agusting@opusoperations.com", "yidi@opusoperations.com"])
+    user_email = ";".join(_email_list)
+
+    def fmt_dt(value):
+        """Format a datetime-local string as MM/DD/YYYY HH:MM:SS AM/PM."""
+        if not value:
+            return ""
+        clean = value.strip().replace("Z", "").split(".")[0].replace(" ", "T")
+        if len(clean) == 16:
+            clean += ":00"
+        try:
+            return datetime.fromisoformat(clean).strftime("%m/%d/%Y %I:%M:%S %p")
+        except Exception:
+            return value
 
     print("Incoming data keys:", list(data.keys()))
     print("Date_Time_Of_Incident:", data.get("Date_Time_Of_Incident"))
     print("Date_Time_Of_Report:", data.get("Date_Time_Of_Report"))
 
-    fields = []
-    for name, (dtype, value) in field_map.items():
-        if value:
-            if dtype == "text":
-                fields.append({"name": name, "text": value})
-            elif dtype == "datetime":
-                # Normalize then reformat as MM/DD/YYYY HH:MM:SS AM/PM for the doForms text field
-                clean_dt = value.strip().replace("Z", "").split(".")[0].replace(" ", "T")
-                if len(clean_dt) == 16:   # missing seconds → append :00
-                    clean_dt += ":00"
-                try:
-                    dt = datetime.fromisoformat(clean_dt)
-                    formatted = dt.strftime("%m/%d/%Y %I:%M:%S %p")
-                except Exception:
-                    formatted = value   # fallback to raw value if parse fails
-                fields.append({"name": name, "text": formatted})
+    # Build nested payload mirroring the form's grid/section structure:
+    # Top-level: Email_To
+    # Section "untitled2": Jobsite_Address, Customer_Name, Date_Time_of_Report, Name_of_Supervisor
+    # Section "Incident_Information": Employee_Name, Report_Type, Incident_Type,
+    #   Unit_Number_or_Location, What_Happened, Who_Was_Notified,
+    #   Date_Time_of_Incident, How_Was_it_Resolved, Follow_Up_Actions_Needed
 
+    def tf(value):
+        """Return a text field dict, or None if empty."""
+        return {"text": value} if value else None
+
+    section_untitled2 = []
+    for fname, val in [
+        ("Jobsite_Address",      data.get("Job_Address", "")),
+        ("Customer_Name",        data.get("Customer_Name", "")),
+        ("Date_Time_of_Report",  fmt_dt(data.get("Date_Time_Of_Report", ""))),
+        ("Name_of_Supervisor",   data.get("Name_Of_Supervisor", "")),
+    ]:
+        if val:
+            section_untitled2.append({"name": fname, "text": val})
+
+    section_incident = []
+    for fname, val in [
+        ("Employee_Name",            data.get("Employee_name", "")),
+        ("Report_Type",              report_type),
+        ("Incident_Type",            data.get("Incident_Type", "")),
+        ("Unit_Number_or_Location",  data.get("Unit_Number_Or_Location", "")),
+        ("What_Happened",            data.get("Describe_What_Happened", "")),
+        ("Who_Was_Notified",         data.get("Who_Was_Notified", "")),
+        ("Date_Time_of_Incident",    fmt_dt(data.get("Date_Time_Of_Incident", ""))),
+        ("How_Was_it_Resolved",      data.get("How_Was_It_Resolved", "")),
+        ("Follow_Up_Actions_Needed", follow_up),
+    ]:
+        if val:
+            section_incident.append({"name": fname, "text": val})
+
+    fields = []
+    if section_untitled2:
+        fields.append({"name": "untitled2", "fields": section_untitled2})
+    if section_incident:
+        fields.append({"name": "Incident_Information", "fields": section_incident})
     payload = {
         "formKey": FORM_KEY,
         "projectKey": PROJECT_KEY,
@@ -590,9 +672,76 @@ def submit():
         sid = get_session_id()
         if sid in _sessions:
             del _sessions[sid]
+        # Email sending disabled — handled via doForms dispatch rules
+        # try:
+        #     _send_incident_email(user_email, data, report_type)
+        # except Exception as e:
+        #     print(f"[EMAIL] Failed to send incident email: {e}")
         return jsonify({"success": True, "response": r.json()})
     else:
         return jsonify({"success": False, "error": r.text}), r.status_code
+
+
+def _send_incident_email(recipients_str, data, report_type):
+    """Send incident report notification email to all recipients."""
+    subject = f"[{report_type or 'Incident Report'}] {data.get('Incident_Type', '')} — {data.get('Job_Address', '')}"
+
+    body_lines = [
+        f"<b>Report Type:</b> {report_type}",
+        f"<b>Incident Type:</b> {data.get('Incident_Type', '')}",
+        f"<b>Address:</b> {data.get('Job_Address', '')}",
+        f"<b>Customer:</b> {data.get('Customer_Name', '')}",
+        f"<b>Supervisor:</b> {data.get('Name_Of_Supervisor', '')}",
+        f"<b>Employee:</b> {data.get('Employee_name', '')}",
+        f"<b>Unit / Location:</b> {data.get('Unit_Number_Or_Location', '')}",
+        f"<b>Date/Time of Incident:</b> {data.get('Date_Time_Of_Incident', '')}",
+        f"<b>Date/Time of Report:</b> {data.get('Date_Time_Of_Report', '')}",
+        "",
+        f"<b>What Happened:</b><br>{data.get('Describe_What_Happened', '').replace(chr(10), '<br>')}",
+        "",
+        f"<b>Who Was Notified:</b><br>{data.get('Who_Was_Notified', '')}",
+        "",
+        f"<b>How Was It Resolved:</b><br>{data.get('How_Was_It_Resolved', '').replace(chr(10), '<br>')}",
+    ]
+    if data.get("Additional_Information"):
+        body_lines += ["", f"<b>Additional Information:</b><br>{data['Additional_Information']}"]
+    if data.get("Previous_Undocumented_Incidents"):
+        body_lines += ["", f"<b>Prior Undocumented Incidents:</b><br>{data['Previous_Undocumented_Incidents']}"]
+
+    html_body = f"""
+<html><body style="font-family:sans-serif;font-size:14px;color:#222;line-height:1.6;">
+  <div style="max-width:700px;margin:0 auto;border:1px solid #ddd;border-radius:8px;padding:24px;">
+    <div style="background:#e8622a;color:#fff;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
+      <strong>Opus Operations — Incident Report</strong>
+    </div>
+    {'<br>'.join(body_lines)}
+    <hr style="margin-top:24px;border:none;border-top:1px solid #eee;">
+    <p style="color:#888;font-size:12px;">Submitted via Opus Operations Incident Reporter</p>
+  </div>
+</body></html>"""
+
+    text_body = "\n".join(
+        line.replace("<br>", "\n").replace("<b>", "").replace("</b>", "")
+        for line in body_lines
+    )
+
+    recipients = [r.strip() for r in recipients_str.replace(",", ";").split(";") if r.strip()]
+    if not recipients:
+        return
+
+    msg = MIMEMultipart("alternative")
+    msg["Subject"] = subject
+    msg["From"]    = SMTP_FROM
+    msg["To"]      = ", ".join(recipients)
+    msg.attach(MIMEText(text_body, "plain"))
+    msg.attach(MIMEText(html_body, "html"))
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_FROM, recipients, msg.as_string())
+    print(f"[EMAIL] Incident report sent to: {', '.join(recipients)}")
 
 
 @app.route("/api/feedback", methods=["POST"])

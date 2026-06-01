@@ -404,7 +404,7 @@
 
             <!-- Employee: employee.full_name values -->
             <div class="field">
-              <label>Employee Name <span class="required">*</span></label>
+              <label>Employee Name</label>
               <select id="sel_employee" name="Employee_name">
                 <option value="">— Select employee —</option>
               </select>
@@ -415,6 +415,7 @@
               <span class="ai-badge">AI</span>
               <label>Incident Type</label>
               <input type="text" name="Incident_Type" placeholder="e.g. Disturbance">
+              <input type="hidden" name="Report_Type">
             </div>
             <div class="field ai-filled">
               <span class="ai-badge">AI</span>
@@ -448,6 +449,11 @@
               <span class="ai-badge">AI</span>
               <label>How Was It Resolved?</label>
               <textarea name="How_Was_It_Resolved" rows="2" placeholder="Resolution details"></textarea>
+            </div>
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Follow Up Actions Needed</label>
+              <textarea name="Follow_Up_Actions_Needed" rows="2" placeholder="Pending actions or next steps..."></textarea>
             </div>
           </div>
         </div>
@@ -859,7 +865,9 @@
     const mapping = {
       Describe_What_Happened:  "Describe_What_Happened",
       Who_Was_Notified:        "Who_Was_Notified",
+      How_Was_It_Resolved:     "How_Was_It_Resolved",
       Incident_Type:           "Incident_Type",
+      Report_Type:             "Report_Type",
       Unit_Number_Or_Location: "Unit_Number_Or_Location",
       Date_Time_Of_Incident:   "Date_Time_Of_Incident",
     };
@@ -880,16 +888,11 @@
       }
     }
 
-    // Combine resolution + next steps
-    const resolved  = fields.How_Was_It_Resolved || "";
-    const nextSteps = fields.Next_Steps || "";
-    const combined  = [
-      resolved,
-      nextSteps ? "The following actions are still pending: " + nextSteps : ""
-    ].filter(Boolean).join("\n\n");
-
+    // Populate resolution and follow-up separately
     const resolvedEl = form.querySelector('[name="How_Was_It_Resolved"]');
-    if (resolvedEl && combined) resolvedEl.value = combined;
+    if (resolvedEl && fields.How_Was_It_Resolved) resolvedEl.value = fields.How_Was_It_Resolved;
+    const followUpEl = form.querySelector('[name="Follow_Up_Actions_Needed"]');
+    if (followUpEl && fields.Next_Steps) followUpEl.value = fields.Next_Steps;
    
     const prevSection = document.getElementById("section_prev_incidents");
     if (fields.Previous_Undocumented_Incidents && fields.Previous_Undocumented_Incidents.trim()) {
@@ -918,7 +921,7 @@
 
     if (!address)                              { alert("Please select an address.");   return; }
     if (!customer || customer === "No customer on file") { alert("Please select a customer.");  return; }
-    if (!employee)                             { alert("Please select an employee.");  return; }
+    // employee is optional — no validation required
     if (!supervisor)                           { alert("Please select a supervisor."); return; }
 
     const form = document.getElementById("incidentForm");

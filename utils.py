@@ -341,7 +341,8 @@ Return ONLY valid JSON — no markdown, no explanation:
   "Who_Was_Notified": "Full names and roles of everyone notified",
   "How_Was_It_Resolved": "Actions already taken",
   "Next_Steps": "Actions still needed, or 'No further action planned'",
-  "Incident_Type": "One of: Trespassing/Unauthorized Access | Disturbance | Missing/Stolen Package | Resident Issue | Criminal Activity | Violence/Altercation | Emergency | Time and Attendance | Job Performance | Professional Conduct | Harassment/Misconduct | Medical/Injury | Fraternization | Appearance",
+  "Incident_Type": "Choose the single best match from these exact options: 'Trespassing / Unathorized access' | 'Disturbance' | 'Missing / Stolen Package' | 'Resident Issue' | 'Criminal Activity' | 'Violence and Altercations' | 'Emergencies'. Use the examples as guidance: Trespassing=unauthorized visitors/domestic partners barred from property; Disturbance=narcotics, loud music, disorderly conduct, neighbor complaints; Missing/Stolen Package=missing/stolen/unaccounted packages; Resident Issue=complaints, lockouts, missing child, front desk issues; Criminal Activity=theft, vandalism, drug distribution, trespassing, weapons, shooting; Violence and Altercations=domestic violence, fights, threats, assault, harassment, stalking; Emergencies=fire, smoke, medical, elevator entrapment, gas leak, flooding, structural damage, power outage.",
+  "Report_Type": "Based on the Incident_Type chosen above, set this to exactly 'Jobsite Incident Report' if Incident_Type is Trespassing/Unathorized access, Disturbance, Missing/Stolen Package, or Resident Issue. Set to exactly 'Emergency Incident Report' if Incident_Type is Criminal Activity, Violence and Altercations, or Emergencies.",
   "Unit_Number_Or_Location": "Specific unit, floor, or area",
   "Date_Time_Of_Incident": "YYYY-MM-DDTHH:MM:SS",
   "Previous_Undocumented_Incidents": "Summary of any undocumented prior incidents. Leave blank if none."
