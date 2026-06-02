@@ -941,12 +941,25 @@ def feedback():
 
 @app.route("/api/logs")
 def view_logs():
-    """View last 200 lines of server.log — for debugging on remote VMs."""
-    try:
-        lines = _log_path.read_text(encoding="utf-8").splitlines()
-        return "<pre style='font-size:12px;padding:16px'>" + "\n".join(lines[-200:]) + "</pre>"
-    except Exception as e:
-        return f"No log file yet: {e}", 404
+    """View recent server logs — checks server.log and nohup.out."""
+    base = Path(__file__).parent
+    candidates = [base / "server.log", base / "nohup.out"]
+    content = []
+    for p in candidates:
+        content.append(f"=== {p} ===")
+        if p.exists():
+            try:
+                lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
+                content.extend(lines[-150:])
+            except Exception as e:
+                content.append(f"  [read error: {e}]")
+        else:
+            content.append("  [file not found]")
+        content.append("")
+    html = "<pre style='font-family:monospace;font-size:12px;padding:16px;white-space:pre-wrap;word-break:break-all'>"
+    html += "\n".join(content)
+    html += "</pre>"
+    return html
 
 
 @app.route("/robots.txt")
