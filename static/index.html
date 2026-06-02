@@ -139,6 +139,15 @@
 
   .field-loading { font-size: 11px; color: var(--muted); font-style: italic; margin-top: 2px; display: none; }
   .field-loading.show { display: block; }
+  .check-group { display: flex; flex-direction: column; gap: 8px; padding: 4px 0; }
+  .check-label { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--text); cursor: pointer; }
+  .check-label input[type="checkbox"] {
+    appearance: checkbox !important; -webkit-appearance: checkbox !important;
+    width: 15px !important; height: 15px !important;
+    padding: 0 !important; background: transparent !important;
+    border: 1px solid var(--border) !important; border-radius: 3px !important;
+    accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
+  }
 
   /* Footer */
   .form-footer { padding: 16px 24px; border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; align-items: center; }
@@ -234,6 +243,34 @@
   .resend-btn:hover { color: var(--accent); }
   .resend-btn:disabled { opacity: .4; cursor: default; text-decoration: none; }
 
+  /* ── Report type picker modal ── */
+  #reportTypeModal {
+    position: fixed; inset: 0; z-index: 9000;
+    background: rgba(0,0,0,.6);
+    display: flex; align-items: center; justify-content: center;
+    padding: 24px;
+  }
+  #reportTypeModal.hidden { display: none; }
+  .rtype-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 36px 32px;
+    width: 100%; max-width: 420px;
+    display: flex; flex-direction: column; gap: 20px;
+  }
+  .rtype-card h2 { font-size: 17px; font-weight: 600; margin: 0; }
+  .rtype-card p  { font-size: 13px; color: var(--muted); margin: 0; }
+  .rtype-btn {
+    width: 100%; background: var(--input-bg); border: 1px solid var(--border);
+    border-radius: 10px; padding: 14px 18px; text-align: left;
+    font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 500;
+    color: var(--text); cursor: pointer; transition: border-color .2s, background .2s;
+  }
+  .rtype-btn:hover { border-color: var(--accent); background: rgba(232,98,42,.08); }
+  .rtype-btn small { display: block; font-size: 11px; color: var(--muted); margin-top: 3px; font-weight: 400; }
+  .rtype-cancel { background: none; border: none; color: var(--muted); font-family: 'DM Sans', sans-serif;
+    font-size: 12px; cursor: pointer; align-self: center; text-decoration: underline; }
+  .rtype-cancel:hover { color: var(--text); }
+
   /* logout button in header */
   #logoutBtn {
     margin-left: 12px; background: transparent; color: var(--muted);
@@ -290,6 +327,25 @@
   </div>
 </div>
 
+<!-- ── Report Type Picker Modal ── -->
+<div id="reportTypeModal" class="hidden">
+  <div class="rtype-card">
+    <div>
+      <h2>What type of report?</h2>
+      <p>Choose the form you want to fill out manually.</p>
+    </div>
+    <button class="rtype-btn" onclick="enableManualIncident()">
+      📋 Incident Report
+      <small>Trespassing, disturbance, emergency, criminal activity, etc.</small>
+    </button>
+    <button class="rtype-btn" onclick="enableManualEmployee()">
+      👤 Employee Occurrence Report
+      <small>Attendance, performance, conduct, harassment, appearance, etc.</small>
+    </button>
+    <button class="rtype-cancel" onclick="document.getElementById('reportTypeModal').classList.add('hidden')">Cancel</button>
+  </div>
+</div>
+
 <header>
   <div class="logo-mark">OO</div>
   <div>
@@ -333,7 +389,7 @@
     <div class="panel-header">
       <div class="panel-icon">📋</div>
       <div>
-        <h2>Incident Report Form</h2>
+        <h2 id="formPanelTitle">Incident Report Form</h2>
         <p>Review, complete, and submit to doForms</p>
       </div>
     </div>
@@ -475,6 +531,122 @@
         </div>
 
       </form>
+
+      <!-- ── Employee Occurrence Form ── -->
+      <form id="employeeForm" style="display:none">
+
+        <!-- Employee Information -->
+        <div class="form-section">
+          <div class="section-label">Employee Information</div>
+          <div class="field-grid">
+
+            <div class="field">
+              <label>Employee <span class="required">*</span></label>
+              <select id="emp_sel_employee" name="Employee_name">
+                <option value="">— Select employee —</option>
+              </select>
+            </div>
+
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Employee Title</label>
+              <input type="text" name="Employee_Title" placeholder="e.g. Security Guard">
+            </div>
+
+            <div class="field">
+              <label>Supervisor <span class="required">*</span></label>
+              <select id="emp_sel_supervisor" name="Name_Of_Supervisor">
+                <option value="">— Select supervisor —</option>
+              </select>
+            </div>
+
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Date & Time of Incident</label>
+              <input type="datetime-local" name="Date_Time_Of_Incident">
+            </div>
+
+            <div class="field">
+              <label>Date & Time of Communication</label>
+              <input type="datetime-local" id="emp_report_dt" name="Date_Time_Of_Report">
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Occurrence Details -->
+        <div class="form-section">
+          <div class="section-label">Occurrence Details</div>
+          <div class="field-grid">
+
+            <div class="field">
+              <label>Action Taken <span class="required">*</span></label>
+              <div class="check-group">
+                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Record_of_Discussion"> Record of Discussion</label>
+                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Verbal_Warning"> Verbal Warning</label>
+                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Written_Warning"> Written Warning</label>
+                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Counseling_Session"> Counseling Session</label>
+                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Suspension"> Suspension</label>
+                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Termination"> Termination</label>
+              </div>
+            </div>
+
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Incident Type</label>
+              <select name="Incident_Type">
+                <option value="">— Select —</option>
+                <option value="Time and Attendance">Time and Attendance</option>
+                <option value="Job Performance">Job Performance</option>
+                <option value="Professional Conduct">Professional Conduct</option>
+                <option value="Harassment and Misconduct">Harassment and Misconduct</option>
+                <option value="Medical and Injury">Medical and Injury</option>
+                <option value="Fraternization">Fraternization</option>
+                <option value="Appearance">Appearance</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Narrative -->
+        <div class="form-section">
+          <div class="section-label">Narrative — AI Generated</div>
+          <div class="field-grid single">
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Reason for Action <span class="required">*</span></label>
+              <textarea name="Reason_for_Action" rows="5" placeholder="Description of what happened and why this action was taken..."></textarea>
+            </div>
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Conversation Summary &amp; Expectations</label>
+              <textarea name="Conversation_Summary_and_Expec" rows="3" placeholder="What was discussed and what expectations were set..."></textarea>
+            </div>
+            <div class="field ai-filled">
+              <span class="ai-badge">AI</span>
+              <label>Employee's Reaction</label>
+              <textarea name="Employee_Reaction" rows="2" placeholder="How the employee responded..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Additional Notes -->
+        <div class="form-section">
+          <div class="section-label">Additional Notes</div>
+          <div class="field-grid single">
+            <div class="field">
+              <label>Additional Information</label>
+              <textarea name="Additional_Information" rows="3" placeholder="Anything else to add..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- hidden field so submitForm knows the type -->
+        <input type="hidden" name="report_type" value="employee_occurrence">
+
+      </form>
+
     </div>
 
     <div class="form-footer" id="formFooter" style="display:none">
@@ -490,13 +662,14 @@
   const API_BASE = "";
   let conversationHistory = [];
   let formReady = false;
+  let currentReportType = "incident";  // "incident" | "employee_occurrence"
 
   function nowLocal() {
     const d = new Date();
     d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
     return d.toISOString().slice(0, 16);
   }
-  document.querySelector('[name="Date_Time_Of_Report"]').value = nowLocal();
+  document.querySelector('#incidentForm [name="Date_Time_Of_Report"]').value = nowLocal();
 
   // ── Load all dropdowns on page load ─────────────────────────
   async function loadDropdowns() {
@@ -515,14 +688,15 @@
     } catch(e) { console.error("Failed to load addresses:", e); }
     document.getElementById("load_address").classList.remove("show");
 
-    // Employees — used for both supervisor and employee dropdowns
+    // Employees — used for incident AND employee occurrence dropdowns
     document.getElementById("load_employee").classList.add("show");
     document.getElementById("load_supervisor").classList.add("show");
     try {
       const res   = await fetch(`${API_BASE}/api/dropdown/employees`);
       const names = await res.json();
-      ["sel_employee", "sel_supervisor"].forEach(selId => {
+      ["sel_employee", "sel_supervisor", "emp_sel_employee", "emp_sel_supervisor"].forEach(selId => {
         const sel = document.getElementById(selId);
+        if (!sel) return;
         names.forEach(name => {
           const opt = document.createElement("option");
           opt.value = name; opt.textContent = name;
@@ -856,11 +1030,22 @@
 
   // ── Populate AI fields ───────────────────────────────────────
   function populateForm(fields) {
+    if (fields.report_type === "employee_occurrence") {
+      populateEmployeeForm(fields);
+    } else {
+      populateIncidentForm(fields);
+    }
     formReady = true;
     document.getElementById("formPlaceholder").style.display = "none";
-    document.getElementById("incidentForm").classList.add("visible");
     document.getElementById("formFooter").style.display = "flex";
     document.getElementById("progressFill").style.width = "100%";
+    document.getElementById("userInput").placeholder = "Any feedback on how the AI did? (optional)";
+  }
+
+  function populateIncidentForm(fields) {
+    currentReportType = "incident";
+    document.getElementById("formPanelTitle").textContent = "Incident Report Form";
+    document.getElementById("incidentForm").classList.add("visible");
 
     const mapping = {
       Describe_What_Happened:  "Describe_What_Happened",
@@ -888,12 +1073,11 @@
       }
     }
 
-    // Populate resolution and follow-up separately
     const resolvedEl = form.querySelector('[name="How_Was_It_Resolved"]');
     if (resolvedEl && fields.How_Was_It_Resolved) resolvedEl.value = fields.How_Was_It_Resolved;
     const followUpEl = form.querySelector('[name="Follow_Up_Actions_Needed"]');
     if (followUpEl && fields.Next_Steps) followUpEl.value = fields.Next_Steps;
-   
+
     const prevSection = document.getElementById("section_prev_incidents");
     if (fields.Previous_Undocumented_Incidents && fields.Previous_Undocumented_Incidents.trim()) {
       prevSection.style.display = "block";
@@ -902,7 +1086,81 @@
     }
 
     form.scrollIntoView({ behavior: "smooth" });
-    document.getElementById("userInput").placeholder = "Any feedback on how the AI did? (optional)";
+  }
+
+  function populateEmployeeForm(fields) {
+    currentReportType = "employee_occurrence";
+    document.getElementById("formPanelTitle").textContent = "Employee Occurrence Report";
+    const form = document.getElementById("employeeForm");
+    form.style.display = "block";
+
+    // Set communication date/time to now
+    document.getElementById("emp_report_dt").value = nowLocal();
+
+    // Date of incident (AI key is Date_Time_Of_Occurrence, form field is Date_Time_Of_Incident)
+    if (fields.Date_Time_Of_Occurrence) {
+      const el = form.querySelector('[name="Date_Time_Of_Incident"]');
+      if (el) {
+        try {
+          const d = new Date(fields.Date_Time_Of_Occurrence);
+          d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+          el.value = d.toISOString().slice(0, 16);
+        } catch { el.value = ""; }
+      }
+    }
+
+    // Text / select fields where AI key matches the form field name exactly
+    const fillFields = [
+      "Employee_Title",
+      "Incident_Type",
+      "Reason_for_Action",
+      "Conversation_Summary_and_Expec",
+      "Employee_Reaction",
+    ];
+    for (const name of fillFields) {
+      if (!fields[name]) continue;
+      const el = form.querySelector(`[name="${name}"]`);
+      if (el) el.value = fields[name];
+    }
+
+    // Pre-check Action Taken checkboxes based on AI suggestion
+    if (fields.Action_Taken_Suggested) {
+      const suggestion = fields.Action_Taken_Suggested.toLowerCase();
+      const checkboxMap = {
+        "verbal warning":       "Verbal_Warning",
+        "written warning":      "Written_Warning",
+        "counseling session":   "Counseling_Session",
+        "suspension":           "Suspension",
+        "termination":          "Termination",
+        "record of discussion": "Record_of_Discussion",
+      };
+      for (const [label, val] of Object.entries(checkboxMap)) {
+        if (suggestion.includes(label)) {
+          const cb = form.querySelector(`.action-taken-cb[value="${val}"]`);
+          if (cb) cb.checked = true;
+        }
+      }
+    }
+
+    // Try to match Employee_Name in dropdown
+    if (fields.Employee_Name) {
+      const sel = document.getElementById("emp_sel_employee");
+      const target = fields.Employee_Name.toLowerCase();
+      for (const opt of sel.options) {
+        if (opt.value.toLowerCase() === target) { sel.value = opt.value; break; }
+      }
+    }
+
+    // Try to match Supervisor_Name in dropdown
+    if (fields.Supervisor_Name) {
+      const sel = document.getElementById("emp_sel_supervisor");
+      const target = fields.Supervisor_Name.toLowerCase();
+      for (const opt of sel.options) {
+        if (opt.value.toLowerCase() === target) { sel.value = opt.value; break; }
+      }
+    }
+
+    form.scrollIntoView({ behavior: "smooth" });
   }
 
   function updateProgress() {
@@ -913,7 +1171,14 @@
   // ── Submit ───────────────────────────────────────────────────
   async function submitForm(e) {
     if (e) e.preventDefault();
+    if (currentReportType === "employee_occurrence") {
+      await submitEmployeeOccurrenceForm();
+    } else {
+      await submitIncidentForm();
+    }
+  }
 
+  async function submitIncidentForm() {
     const address    = document.getElementById("sel_address").value;
     const customer   = getCustomerValue();
     const employee   = document.getElementById("sel_employee").value;
@@ -921,7 +1186,6 @@
 
     if (!address)                              { alert("Please select an address.");   return; }
     if (!customer || customer === "No customer on file") { alert("Please select a customer.");  return; }
-    // employee is optional — no validation required
     if (!supervisor)                           { alert("Please select a supervisor."); return; }
 
     const form = document.getElementById("incidentForm");
@@ -929,14 +1193,10 @@
     const data = {};
     new FormData(form).forEach((val, key) => { if (val) data[key] = val; });
 
-    // Set dropdown values explicitly
     data.Job_Address        = address;
     data.Customer_Name      = customer;
     data.Employee_name      = employee;
     data.Name_Of_Supervisor = supervisor;
-
-    // datetime-local values are already "YYYY-MM-DDTHH:MM" local time — pass through as-is.
-    // The backend normalizes them to ISO 8601 (YYYY-MM-DDTHH:MM:SS) before sending to doForms.
 
     btn.disabled = true;
     btn.innerHTML = "<span>Submitting...</span>";
@@ -964,15 +1224,68 @@
     }
   }
 
+  async function submitEmployeeOccurrenceForm() {
+    const employee   = document.getElementById("emp_sel_employee").value;
+    const supervisor = document.getElementById("emp_sel_supervisor").value;
+
+    if (!employee)   { alert("Please select the employee."); return; }
+    if (!supervisor) { alert("Please select the supervisor."); return; }
+
+    const form = document.getElementById("employeeForm");
+    const btn  = document.getElementById("submitBtn");
+    const data = {};
+    new FormData(form).forEach((val, key) => { if (val) data[key] = val; });
+
+    // Collect multi-select Action Taken checkboxes
+    const actionsTaken = [...form.querySelectorAll(".action-taken-cb:checked")].map(cb => cb.value);
+    if (actionsTaken.length === 0) { alert("Please select at least one Action Taken."); return; }
+    data.Action_Taken = actionsTaken;
+
+    data.Employee_name      = employee;
+    data.Name_Of_Supervisor = supervisor;
+    data.report_type        = "employee_occurrence";
+
+    btn.disabled = true;
+    btn.innerHTML = "<span>Submitting...</span>";
+
+    try {
+      const res    = await fetch(`${API_BASE}/api/submit`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data),
+      });
+      const result = await res.json();
+      if (result.success) {
+        document.getElementById("employeeForm").style.display = "none";
+        document.getElementById("formFooter").style.display = "none";
+        document.getElementById("successOverlay").classList.add("show");
+      } else {
+        btn.disabled = false;
+        btn.innerHTML = "<span>Submit to doForms</span> →";
+        alert("Submission failed: " + (result.error || "Unknown error"));
+      }
+    } catch(err) {
+      btn.disabled = false;
+      btn.innerHTML = "<span>Submit to doForms</span> →";
+      alert("Connection error. Is the Flask server running?");
+    }
+  }
+
   // ── Reset ────────────────────────────────────────────────────
   function resetForm() {
     if (!confirm("Reset the form? AI-filled data will be cleared.")) return;
-    document.getElementById("incidentForm").reset();
-    document.querySelector('[name="Date_Time_Of_Report"]').value = nowLocal();
-    document.getElementById("input_Customer_Name").value = "";
-    document.getElementById("input_Customer_Name").style.display = "block";
-    document.getElementById("sel_customer").style.display = "none";
-    document.getElementById("sel_customer").innerHTML = "<option value=''>— Select customer —</option>";
+    if (currentReportType === "employee_occurrence") {
+      document.getElementById("employeeForm").reset();
+      document.getElementById("emp_report_dt").value = nowLocal();
+      document.getElementById("emp_prev_warnings_section").style.display = "none";
+    } else {
+      document.getElementById("incidentForm").reset();
+      document.querySelector('#incidentForm [name="Date_Time_Of_Report"]').value = nowLocal();
+      document.getElementById("input_Customer_Name").value = "";
+      document.getElementById("input_Customer_Name").style.display = "block";
+      document.getElementById("sel_customer").style.display = "none";
+      document.getElementById("sel_customer").innerHTML = "<option value=''>— Select customer —</option>";
+    }
   }
 
   async function resetAll() {
@@ -1108,22 +1421,39 @@
     }
   }
   function enableManualMode() {
-    // Hide chat panel, expand form to full width
+    // Show the report type picker modal
+    document.getElementById('reportTypeModal').classList.remove('hidden');
+  }
+
+  function _activateManualLayout() {
+    document.getElementById('reportTypeModal').classList.add('hidden');
     document.querySelector('.chat-panel').style.display = 'none';
     document.querySelector('.main').style.gridTemplateColumns = '1fr';
-
-    // Show the form immediately
     document.getElementById('formPlaceholder').style.display = 'none';
-    document.getElementById('incidentForm').classList.add('visible');
     document.getElementById('formFooter').style.display = 'flex';
     document.getElementById('progressFill').style.width = '100%';
-
-    // Remove AI badges since nothing is AI-filled
-    document.querySelectorAll('.ai-badge').forEach(el => el.remove());
-    document.querySelectorAll('.ai-filled').forEach(el => el.classList.remove('ai-filled'));
-
-    // Mark form as ready so chat input doesn't interfere
     formReady = true;
+  }
+
+  function enableManualIncident() {
+    currentReportType = 'incident';
+    _activateManualLayout();
+    document.getElementById('formPanelTitle').textContent = 'Incident Report Form';
+    document.getElementById('incidentForm').classList.add('visible');
+    // Remove AI badges since nothing is AI-filled
+    document.querySelectorAll('#incidentForm .ai-badge').forEach(el => el.remove());
+    document.querySelectorAll('#incidentForm .ai-filled').forEach(el => el.classList.remove('ai-filled'));
+  }
+
+  function enableManualEmployee() {
+    currentReportType = 'employee_occurrence';
+    _activateManualLayout();
+    document.getElementById('formPanelTitle').textContent = 'Employee Occurrence Report';
+    document.getElementById('employeeForm').style.display = 'block';
+    document.getElementById('emp_report_dt').value = nowLocal();
+    // Remove AI badges since nothing is AI-filled
+    document.querySelectorAll('#employeeForm .ai-badge').forEach(el => el.remove());
+    document.querySelectorAll('#employeeForm .ai-filled').forEach(el => el.classList.remove('ai-filled'));
   }
 </script>
 </body>

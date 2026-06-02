@@ -15,9 +15,12 @@ from pathlib import Path
 from utils import (ANTHROPIC_API_KEY,
     phase1_extract, phase2_check, phase2_update_state,
     phase3_check, phase4_check, phase4_update_who, finalize,
-    EMPTY_STATE
+    EMPTY_STATE,
+    emp_phase2_check, emp_phase2_update_state,
+    emp_phase4_check, emp_finalize,
+    EMPTY_STATE_EMPLOYEE,
 )
-from credentials import get_cached_token, get_db_conn, FORM_KEY, PROJECT_KEY, DOFORMS_BASE, IMAP_EMAIL, IMAP_APP_PASSWORD
+from credentials import get_cached_token, get_db_conn, FORM_KEY, PROJECT_KEY, DOFORMS_BASE, IMAP_EMAIL, IMAP_APP_PASSWORD, EMPLOYEE_FORM_KEY
 
 
 # ── Email / SMTP config ─────────────────────────────────────────
@@ -293,9 +296,10 @@ def get_session_id():
 def get_or_create_session(sid):
     if sid not in _sessions:
         _sessions[sid] = {
-            "state": __import__("copy").deepcopy(EMPTY_STATE),
+            "state":       __import__("copy").deepcopy(EMPTY_STATE),
             "conversation": [],
-            "phase": 1,
+            "phase":        1,
+            "report_type":  None,   # set after phase 1 classification
             "phase2_turns": 0,
             "phase3_turns": 0,
             "phase4_turns": 0,
@@ -395,15 +399,30 @@ def chat():
         conversation.append({"role": "user", "content": latest_user_msg})
 
         extracted = phase1_extract(latest_user_msg)
+        report_type = extracted.pop("report_type", "incident")
         multi = extracted.pop("multi_incident", "")
 
-        for key in EMPTY_STATE:
-            if key in extracted and extracted[key] not in ("", [], None):
-                state[key] = extracted[key]
+        # Set session report type and re-initialize state if employee occurrence
+        sess["report_type"] = report_type
+        if report_type == "employee_occurrence":
+            import copy
+            sess["state"] = copy.deepcopy(EMPTY_STATE_EMPLOYEE)
+            state = sess["state"]
+            for key in EMPTY_STATE_EMPLOYEE:
+                if key in extracted and extracted[key] not in ("", [], None):
+                    state[key] = extracted[key]
+            # "what" from phase1 seeds reason_for_action
+            if extracted.get("what") and not state.get("reason_for_action"):
+                state["reason_for_action"] = extracted["what"]
+        else:
+            for key in EMPTY_STATE:
+                if key in extracted and extracted[key] not in ("", [], None):
+                    state[key] = extracted[key]
 
         sess["phase"] = 2
 
-        if multi and not state.get("multi_incident_handled"):
+        # multi_incident check only applies to incident reports
+        if report_type == "incident" and multi and not state.get("multi_incident_handled"):
             q = f"You mentioned a prior incident: \"{multi}\" — was a report already filed for that?"
             conversation.append({"role": "assistant", "content": q})
             sess["_pending_multi"] = multi
@@ -435,9 +454,10 @@ def chat():
     elif phase == 5:
         import copy
         _sessions[sid] = {
-            "state": copy.deepcopy(EMPTY_STATE),
+            "state":        copy.deepcopy(EMPTY_STATE),
             "conversation": [],
-            "phase": 1,
+            "phase":        1,
+            "report_type":  None,
             "phase2_turns": 0,
             "phase3_turns": 0,
             "phase4_turns": 0,
@@ -445,10 +465,20 @@ def chat():
         sess = _sessions[sid]
         sess["conversation"].append({"role": "user", "content": latest_user_msg})
         extracted = phase1_extract(latest_user_msg)
+        report_type = extracted.pop("report_type", "incident")
         extracted.pop("multi_incident", "")
-        for key in EMPTY_STATE:
-            if key in extracted and extracted[key] not in ("", [], None):
-                sess["state"][key] = extracted[key]
+        sess["report_type"] = report_type
+        if report_type == "employee_occurrence":
+            sess["state"] = copy.deepcopy(EMPTY_STATE_EMPLOYEE)
+            for key in EMPTY_STATE_EMPLOYEE:
+                if key in extracted and extracted[key] not in ("", [], None):
+                    sess["state"][key] = extracted[key]
+            if extracted.get("what") and not sess["state"].get("reason_for_action"):
+                sess["state"]["reason_for_action"] = extracted["what"]
+        else:
+            for key in EMPTY_STATE:
+                if key in extracted and extracted[key] not in ("", [], None):
+                    sess["state"][key] = extracted[key]
         sess["phase"] = 2
         reply = _advance_phase2(sess)
     else:
@@ -464,18 +494,27 @@ def chat():
 def _advance_phase2(sess):
     state        = sess["state"]
     conversation = sess["conversation"]
+    report_type  = sess.get("report_type", "incident")
 
     sess["phase2_turns"] = sess.get("phase2_turns", 0) + 1
     if sess["phase2_turns"] > 12:
-        state = phase2_update_state(state, conversation)
-        sess["state"] = state
+        if report_type == "employee_occurrence":
+            sess["state"] = emp_phase2_update_state(state, conversation)
+        else:
+            sess["state"] = phase2_update_state(state, conversation)
         sess["phase"] = 3
         return _advance_phase3(sess)
 
-    check = phase2_check(state, conversation)
+    if report_type == "employee_occurrence":
+        check = emp_phase2_check(state, conversation)
+    else:
+        check = phase2_check(state, conversation)
 
     if check.get("done"):
-        sess["state"] = phase2_update_state(state, conversation)
+        if report_type == "employee_occurrence":
+            sess["state"] = emp_phase2_update_state(state, conversation)
+        else:
+            sess["state"] = phase2_update_state(state, conversation)
         sess["phase"] = 3
         return _advance_phase3(sess)
 
@@ -487,6 +526,7 @@ def _advance_phase2(sess):
 def _advance_phase3(sess):
     state        = sess["state"]
     conversation = sess["conversation"]
+    report_type  = sess.get("report_type", "incident")
 
     sess["phase3_turns"] = sess.get("phase3_turns", 0) + 1
     if sess["phase3_turns"] > 8:
@@ -502,7 +542,10 @@ def _advance_phase3(sess):
         sess["phase"] = 4
         return _advance_phase4(sess)
 
-    q = check.get("question", "What was the exact date and time of the incident?")
+    default_q = ("What was the exact date and time of the occurrence?"
+                 if report_type == "employee_occurrence"
+                 else "What was the exact date and time of the incident?")
+    q = check.get("question", default_q)
     conversation.append({"role": "assistant", "content": q})
     return q
 
@@ -510,6 +553,7 @@ def _advance_phase3(sess):
 def _advance_phase4(sess):
     state        = sess["state"]
     conversation = sess["conversation"]
+    report_type  = sess.get("report_type", "incident")
 
     sess["state"]["who"] = phase4_update_who(state, conversation)
     state = sess["state"]
@@ -518,7 +562,10 @@ def _advance_phase4(sess):
     if sess["phase4_turns"] > 12:
         return _generate_report(sess)
 
-    check = phase4_check(state, conversation)
+    if report_type == "employee_occurrence":
+        check = emp_phase4_check(state, conversation)
+    else:
+        check = phase4_check(state, conversation)
 
     if check.get("done"):
         return _generate_report(sess)
@@ -530,7 +577,11 @@ def _advance_phase4(sess):
 
 def _generate_report(sess):
     sess["phase"] = 5
-    result = finalize(sess["state"])
+    report_type = sess.get("report_type", "incident")
+    if report_type == "employee_occurrence":
+        result = emp_finalize(sess["state"])
+    else:
+        result = finalize(sess["state"])
     json_str = json.dumps(result, indent=2)
     save_conversation(sess.get("sid", "unknown"), sess["state"], sess["conversation"])
     return f"Got it — let me write that up for you.\n\nSTORY_READY\n```json\n{json_str}\n```"
@@ -551,6 +602,10 @@ def reset_session():
 @app.route("/api/submit", methods=["POST"])
 def submit():
     data = request.json
+
+    # Route employee occurrence reports to a separate handler
+    if data.get("report_type") == "employee_occurrence":
+        return _submit_employee_occurrence(data)
 
     try:
         token = get_cached_token()
@@ -673,11 +728,95 @@ def submit():
         sid = get_session_id()
         if sid in _sessions:
             del _sessions[sid]
-        # Email sending disabled — handled via doForms dispatch rules
-        # try:
-        #     _send_incident_email(user_email, data, report_type)
-        # except Exception as e:
-        #     print(f"[EMAIL] Failed to send incident email: {e}")
+        return jsonify({"success": True, "response": r.json()})
+    else:
+        return jsonify({"success": False, "error": r.text}), r.status_code
+
+
+# ── Employee Occurrence submit helper ────────────────────────────
+def _submit_employee_occurrence(data):
+    """Submit an Employee Occurrence Report to doForms (Employee_Occurance_Test form).
+
+    Form structure (from get_employee_form.py):
+      Section "untitled2": Employee_Name, Employee_Title, Name_of_Supervisor,
+                           Incident_Type, Date_Time_of_Incident, Date_Time_of_Communication
+      Top-level: Reason_for_Action, Action_Taken (strings), Conversation_Summary_and_Expec,
+                 Employee_s_Reaction, Email_To
+    """
+    try:
+        token = get_cached_token()
+    except Exception as e:
+        return jsonify({"error": f"Token error: {e}"}), 500
+
+    headers = {
+        "Authorization": f"Bearer {token}",
+        "Content-Type": "application/json",
+    }
+
+    def fmt_dt(value):
+        if not value:
+            return ""
+        clean = value.strip().replace("Z", "").split(".")[0].replace(" ", "T")
+        if len(clean) == 16:
+            clean += ":00"
+        try:
+            return datetime.fromisoformat(clean).strftime("%m/%d/%Y %I:%M:%S %p")
+        except Exception:
+            return value
+
+    # ── Section "untitled2" ──────────────────────────────────────
+    section_untitled2 = []
+    for fname, val in [
+        ("Employee_Name",              data.get("Employee_name", "")),
+        ("Employee_Title",             data.get("Employee_Title", "")),
+        ("Name_of_Supervisor",         data.get("Name_Of_Supervisor", "")),
+        ("Incident_Type",              data.get("Incident_Type", "")),
+        ("Date_Time_of_Incident",      fmt_dt(data.get("Date_Time_Of_Incident", ""))),
+        ("Date_Time_of_Communication", fmt_dt(data.get("Date_Time_Of_Report", ""))),
+    ]:
+        if val:
+            section_untitled2.append({"name": fname, "text": val})
+
+    # ── Top-level fields ─────────────────────────────────────────
+    fields = []
+    if section_untitled2:
+        fields.append({"name": "untitled2", "fields": section_untitled2})
+
+    if data.get("Reason_for_Action"):
+        fields.append({"name": "Reason_for_Action", "text": data["Reason_for_Action"]})
+
+    # Action_Taken is a "strings" (multi-select) field in doForms — value is a list from the frontend
+    action_taken = data.get("Action_Taken", [])
+    if isinstance(action_taken, str):
+        action_taken = [action_taken] if action_taken else []
+    if action_taken:
+        fields.append({"name": "Action_Taken", "strings": action_taken})
+
+    if data.get("Conversation_Summary_and_Expec"):
+        fields.append({"name": "Conversation_Summary_and_Expec", "text": data["Conversation_Summary_and_Expec"]})
+
+    if data.get("Employee_Reaction"):
+        fields.append({"name": "Employee_s_Reaction", "text": data["Employee_Reaction"]})
+
+    # Email recipients
+    _email_list = ["chayaf@opusoperations.com"]
+    fields.append({"name": "Email_To", "text": ";".join(_email_list)})
+
+    payload = {
+        "formKey":    EMPLOYEE_FORM_KEY,
+        "projectKey": PROJECT_KEY,
+        "fields":     fields,
+    }
+
+    print("Submitting employee occurrence payload:", json.dumps(payload, indent=2))
+    r = requests.post(f"{DOFORMS_BASE}/api/v2/submissions", headers=headers, json=payload)
+    print("doForms submit status:", r.status_code)
+    print("doForms submit response:", r.text)
+
+    if r.status_code in (200, 201):
+        sid = get_session_id()
+        if sid in _sessions:
+            del _sessions[sid]
         return jsonify({"success": True, "response": r.json()})
     else:
         return jsonify({"success": False, "error": r.text}), r.status_code

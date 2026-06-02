@@ -7,7 +7,7 @@ from credentials import ANTHROPIC_API_KEY
 
 
 
-# ── Empty state ──────────────────────────────────────────────────
+# ── Empty state (Incident Report) ───────────────────────────────
 EMPTY_STATE = {
     "when":         "",
     "who":          [],
@@ -18,6 +18,17 @@ EMPTY_STATE = {
     "next_steps":   "",
     "multi_incident_handled": False,
     "previous_incidents": ""
+}
+
+# ── Empty state (Employee Occurrence Report) ─────────────────────
+EMPTY_STATE_EMPLOYEE = {
+    "when":               "",
+    "who":                [],
+    "action_taken":       "",   # What disciplinary action was taken
+    "reason_for_action":  "",   # What the employee did / why action was taken
+    "standards_expected": "",   # What was communicated and expected going forward
+    "employee_reaction":  "",   # How the employee responded
+    "violation_category": "",   # Time and Attendance / Job Performance / etc.
 }
 
 
@@ -75,12 +86,13 @@ def phase1_extract(story):
     today = datetime.now().strftime("%A, %B %d, %Y")
     system = f"""Today is {today}.
 
-You are an incident data extractor for Opus Operations (security/concierge company).
+You are a report data extractor for Opus Operations (security/concierge company).
 
-The user just described an incident. Extract every piece of information you can find.
+The user just described a situation. First classify the report type, then extract all information.
 
 Return ONLY valid JSON with this exact structure — no markdown, no explanation:
 {{
+  "report_type": "incident",
   "when": "",
   "who": [],
   "where": "",
@@ -88,24 +100,32 @@ Return ONLY valid JSON with this exact structure — no markdown, no explanation
   "notification": "",
   "action_taken": "",
   "next_steps": "",
-  "multi_incident": ""
+  "multi_incident": "",
+  "discipline_type": "",
+  "violation_category": ""
 }}
+
+REPORT TYPE — classify first:
+- "incident": Something that happened AT A PROPERTY involving external parties or property events. The Opus employee is the RESPONDER/REPORTER, not the subject. Examples: trespassing, disturbance, package theft, assault, fire, medical emergency, resident complaint, missing person, criminal activity.
+- "employee_occurrence": The story is primarily about an Opus Operations EMPLOYEE's own behavior, performance, attendance, conduct, or personal injury/medical situation affecting their employment. The employee IS the subject of the report. Examples: arriving late, no-call/no-show, sleeping on the job, dress code violation, insubordination, employee harassment, employee injury on the job, unprofessional conduct.
 
 FIELD RULES:
 - "when": Date and/or time if mentioned. Format: "May 14, 2026 at 7:00 AM". Leave blank if not mentioned.
 - "who": Array of people: [{{"name": "John Smith", "title": "Security Guard"}}].
-  Only use "Male Subject 1", "Female Subject 1", etc. if the person is completely anonymous (described only as "a man", "someone", with zero identifying info). If any partial name was mentioned, use it. Flag unnamed subjects so phase 4 will ask for their names.
+  Only use "Male Subject 1", "Female Subject 1", etc. if the person is completely anonymous. If any partial name was mentioned, use it.
 - "where": Exact location if mentioned.
 - "what": Full story of what happened - do not drop details.
 - "notification": Who was notified, if mentioned.
 - "action_taken": Actions already taken, if mentioned.
 - "next_steps": Future actions, if mentioned.
-- "multi_incident": ONLY populate this if the user explicitly describes events on MORE THAN ONE separate date or occasion. If it is a single incident, leave this blank. Do not infer or guess.
+- "multi_incident": ONLY populate if the user explicitly describes events on MORE THAN ONE separate date. Leave blank for a single incident.
+- "discipline_type": Leave blank always — this is filled in manually by the supervisor.
+- "violation_category": Only for employee_occurrence — "Time and Attendance" | "Job Performance" | "Professional Conduct" | "Harassment and Misconduct" | "Medical and Injury" | "Fraternization" | "Appearance" if clear from story, else "".
 
 Never invent information. Only extract what was actually stated.
 Don't drop details."""
 
-    raw = call_claude(system, [{"role": "user", "content": story}], max_tokens=800)
+    raw = call_claude(system, [{"role": "user", "content": story}], max_tokens=900)
     return parse_json(raw)
 # ════════════════════════════════════════════════════════════════
 # PHASE 2 — Story completion
@@ -357,4 +377,151 @@ Return ONLY valid JSON — no markdown, no explanation:
 }}"""
 
     raw = call_claude(system, [{"role": "user", "content": "Generate the report."}], max_tokens=2048)
+    return parse_json(raw)
+
+
+# ════════════════════════════════════════════════════════════════
+# EMPLOYEE OCCURRENCE REPORT — Phase functions
+# ════════════════════════════════════════════════════════════════
+
+def emp_phase2_check(state, conversation):
+    today = datetime.now().strftime("%A, %B %d, %Y")
+    system = f"""Today is {today}.
+
+You are helping document an Employee Occurrence Report for Opus Operations (security/concierge company).
+
+CURRENT STATE:
+{json.dumps(state, indent=2)}
+
+CONVERSATION SO FAR:
+{fmt_convo(conversation)}
+
+Decide if we have enough detail to write a complete occurrence report.
+
+We need ALL of these 4 things:
+1. ACTION TAKEN — what disciplinary action was taken (e.g. verbal warning, written warning, counseling session, suspension, termination, record of discussion). Ask if not stated.
+2. REASON FOR ACTION — what specifically the employee did that warranted this action. Must be specific, not vague.
+3. STANDARDS EXPECTED — what was communicated to the employee and what expectations or standards were set going forward. Ask if not stated.
+4. EMPLOYEE'S REACTION — how the employee responded. Ask if not stated. Accept "no reaction" or "not applicable" if there was no direct interaction.
+
+VIOLATION CATEGORY — identify from the story if obvious. If unclear, ask. Options:
+   Time and Attendance | Job Performance | Professional Conduct | Harassment and Misconduct | Medical and Injury | Fraternization | Appearance
+
+CRITICAL — NO REPEATED QUESTIONS: If already answered (even partially or with "I don't know"), accept and move on.
+Ask ONE question at a time.
+
+Do NOT ask about date/time — handled separately.
+Do NOT ask for full names — handled separately.
+CRITICAL — NO REPEATED QUESTIONS: If already answered (even partially or with "I don't know"), accept and move on.
+
+If anything is missing, ask ONE focused question.
+
+Return ONLY valid JSON — no markdown, no explanation:
+- If more info needed: {{"done": false, "question": "your question here"}}
+- If complete: {{"done": true}}"""
+
+    raw = call_claude(system, [{"role": "user", "content": "Check if the occurrence narrative is complete."}], max_tokens=300)
+    return parse_json(raw)
+
+
+def emp_phase2_update_state(state, conversation):
+    today = datetime.now().strftime("%A, %B %d, %Y")
+    system = f"""Today is {today}.
+
+You are extracting data for an Employee Occurrence Report for Opus Operations.
+
+CONVERSATION:
+{fmt_convo(conversation)}
+
+CURRENT STATE (merge/update this):
+{json.dumps(state, indent=2)}
+
+Return ONLY valid JSON — no markdown, no explanation:
+{{
+  "when": "",
+  "who": [],
+  "action_taken": "",
+  "reason_for_action": "",
+  "standards_expected": "",
+  "employee_reaction": "",
+  "violation_category": ""
+}}
+
+RULES:
+- "action_taken": what disciplinary action was taken (e.g. "Written Warning", "Verbal Warning", "Suspension", "Termination", etc.)
+- "reason_for_action": full description of what the employee did — do not drop details
+- "standards_expected": what was communicated to the employee and what expectations or standards were set going forward
+- "employee_reaction": how the employee responded. Leave blank if no direct interaction.
+- "violation_category": "Time and Attendance" | "Job Performance" | "Professional Conduct" | "Harassment and Misconduct" | "Medical and Injury" | "Fraternization" | "Appearance"
+- "who": [{{"name": "...", "title": "..."}}] — include the employee being documented and the supervisor filing the report"""
+
+    raw = call_claude(system, [{"role": "user", "content": "Extract state from conversation."}], max_tokens=900)
+    return parse_json(raw)
+
+
+def emp_phase4_check(state, conversation):
+    today = datetime.now().strftime("%A, %B %d, %Y")
+    system = f"""Today is {today}.
+
+You are reviewing an Employee Occurrence Report to confirm the key people are identified.
+
+CURRENT "who" ARRAY:
+{json.dumps(state.get("who", []), indent=2)}
+
+OCCURRENCE TEXT:
+{state.get("reason_for_action", "") or state.get("what", "")}
+
+CONVERSATION SO FAR:
+{fmt_convo(conversation)}
+
+You need:
+1. The EMPLOYEE being documented — FULL name (first AND last) + their job title/role
+2. The SUPERVISOR filing this report — FULL name (first AND last) + their title
+3. The PERSON SUBMITTING — if not already captured, ask for their name and title
+
+FULL NAME RULE: A single name like "Jason" or "Maria" is NOT complete — always ask for the last name unless the user explicitly says they don't know it.
+
+CRITICAL — NO REPEATED QUESTIONS: If already asked and answered (even partially), accept and move on.
+OBVIOUS TITLES: Don't ask for titles that are self-evident (security guard, security officer, supervisor).
+If the user said "I don't know the last name", accept it and move on.
+
+If anyone is still missing name or title, ask ONE specific question.
+
+Return ONLY valid JSON:
+- If more info needed: {{"done": false, "question": "your question"}}
+- If complete: {{"done": true}}"""
+
+    raw = call_claude(system, [{"role": "user", "content": "Check if people are identified."}], max_tokens=300)
+    return parse_json(raw)
+
+
+def emp_finalize(state):
+    today = datetime.now().strftime("%A, %B %d, %Y")
+    system = f"""Today is {today}.
+
+You are an occurrence report writer for Opus Operations (security/concierge company).
+
+Generate a complete Employee Occurrence Report from this data:
+{json.dumps(state, indent=2)}
+
+From the "who" array, identify:
+- The EMPLOYEE being documented (the person whose behavior is being reported) — include their name AND job title
+- The SUPERVISOR or manager filing the report
+
+Return ONLY valid JSON — no markdown, no explanation:
+{{
+  "status": "complete",
+  "report_type": "employee_occurrence",
+  "Employee_Name": "Full name of the employee being documented",
+  "Employee_Title": "The employee's job title or role (e.g. Security Guard, Concierge, etc.)",
+  "Supervisor_Name": "Full name of the supervisor filing the report",
+  "Incident_Type": "Violation category — one of: Time and Attendance | Job Performance | Professional Conduct | Harassment and Misconduct | Medical and Injury | Fraternization | Appearance",
+  "Reason_for_Action": "Full factual narrative of what the employee did and why this action was taken. Use the reason_for_action from the state. Facts only — do not invent details. Do not repeat the same fact more than once.",
+  "Conversation_Summary_and_Expec": "What was communicated to the employee and what standards or expectations were set going forward. Use the standards_expected from the state.",
+  "Employee_Reaction": "How the employee responded. Use the employee_reaction from the state. Leave blank if not stated.",
+  "Action_Taken_Suggested": "The action_taken value from state — used to pre-check the correct checkbox. E.g. 'Written Warning', 'Verbal Warning', 'Suspension', 'Termination', 'Counseling Session', 'Record of Discussion'.",
+  "Date_Time_Of_Occurrence": "YYYY-MM-DDTHH:MM:SS"
+}}"""
+
+    raw = call_claude(system, [{"role": "user", "content": "Generate the occurrence report."}], max_tokens=2048)
     return parse_json(raw)
