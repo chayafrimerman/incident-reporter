@@ -18,9 +18,9 @@ from utils import (ANTHROPIC_API_KEY,
     EMPTY_STATE,
     emp_phase2_check, emp_phase2_update_state,
     emp_phase4_check, emp_finalize,
-    EMPTY_STATE_EMPLOYEE,
+    EMPTY_STATE_EMPLOYEE, FORM_KEY, PROJECT_KEY, EMPLOYEE_FORM_KEY
 )
-from credentials import get_cached_token, get_db_conn, FORM_KEY, PROJECT_KEY, DOFORMS_BASE, IMAP_EMAIL, IMAP_APP_PASSWORD, EMPLOYEE_FORM_KEY
+from credentials import get_cached_token, get_db_conn,  DOFORMS_BASE, IMAP_EMAIL, IMAP_APP_PASSWORD
 
 
 # ── Email / SMTP config ─────────────────────────────────────────
