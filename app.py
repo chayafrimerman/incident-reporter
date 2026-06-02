@@ -44,6 +44,19 @@ app = Flask(__name__, static_folder="static")
 app.secret_key = os.urandom(24)
 CORS(app, supports_credentials=True)
 
+# ── File logging ─────────────────────────────────────────────────
+import logging
+_log_path = Path(__file__).parent / "server.log"
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s %(levelname)s %(message)s",
+    handlers=[
+        logging.FileHandler(_log_path, encoding="utf-8"),
+        logging.StreamHandler(),
+    ],
+)
+log = logging.getLogger(__name__)
+
 # ── In-memory stores ─────────────────────────────────────────────
 # OTP store: { email: { "otp_hash": str, "expires": float } }
 _otp_store = {}
@@ -818,10 +831,15 @@ def _submit_employee_occurrence(data):
         "fields":     fields,
     }
 
-    print("Submitting employee occurrence payload:", json.dumps(payload, indent=2))
+    # Strip photo data from log to keep it readable
+    log_payload = json.loads(json.dumps(payload))
+    for f in log_payload.get("fields", []):
+        if f.get("name") == "Attachments":
+            f["blob"] = f"<{len(payload.get('fields',[]))} bytes>"
+    log.info("EMPLOYEE OCCURRENCE SUBMIT payload: %s", json.dumps(log_payload, indent=2))
     r = requests.post(f"{DOFORMS_BASE}/api/v2/submissions", headers=headers, json=payload)
-    print("doForms submit status:", r.status_code)
-    print("doForms submit response:", r.text)
+    log.info("EMPLOYEE OCCURRENCE SUBMIT status: %s", r.status_code)
+    log.info("EMPLOYEE OCCURRENCE SUBMIT response: %s", r.text)
 
     if r.status_code in (200, 201):
         sid = get_session_id()
@@ -919,6 +937,16 @@ def feedback():
     
     print(f"[FEEDBACK] Saved to {log_file}")
     return jsonify({"ok": True})
+
+
+@app.route("/api/logs")
+def view_logs():
+    """View last 200 lines of server.log — for debugging on remote VMs."""
+    try:
+        lines = _log_path.read_text(encoding="utf-8").splitlines()
+        return "<pre style='font-size:12px;padding:16px'>" + "\n".join(lines[-200:]) + "</pre>"
+    except Exception as e:
+        return f"No log file yet: {e}", 404
 
 
 @app.route("/robots.txt")
