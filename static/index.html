@@ -632,9 +632,9 @@
           </div>
         </div>
 
-        <!-- Photos — required when Text is checked -->
-        <div class="form-section" id="emp_photo_section" style="display:none">
-          <div class="section-label" style="color:#ef4444">Photos <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(required when Text is selected)</span></div>
+        <!-- Photos — optional, mandatory when Text is checked -->
+        <div class="form-section" id="emp_photo_section">
+          <div class="section-label">Photos <span id="emp_photo_required_hint" style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:#ef4444;display:none;">(required when Text is selected)</span></div>
           <div class="field-grid single">
             <div class="field">
               <label>Upload Photos <span class="required">*</span></label>
@@ -1446,12 +1446,7 @@
   }
   // ── Text checkbox → show/hide photo upload ───────────────────
   function onTextChecked(cb) {
-    const section = document.getElementById('emp_photo_section');
-    section.style.display = cb.checked ? 'block' : 'none';
-    if (!cb.checked) {
-      document.getElementById('emp_photo_input').value = '';
-      document.getElementById('emp_photo_preview').innerHTML = '';
-    }
+    document.getElementById('emp_photo_required_hint').style.display = cb.checked ? 'inline' : 'none';
   }
 
   // Photo preview thumbnails
