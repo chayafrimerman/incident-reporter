@@ -798,6 +798,16 @@ def _submit_employee_occurrence(data):
     if data.get("Employee_Reaction"):
         fields.append({"name": "Employee_s_Reaction", "text": data["Employee_Reaction"]})
 
+    # Photos — submitted as base64 blobs to the Attachments field
+    photos = data.get("photos", [])
+    for i, photo in enumerate(photos):
+        fields.append({
+            "name": "Attachments",
+            "blob": photo.get("data", ""),
+            "filename": photo.get("filename", f"photo_{i+1}.jpg"),
+            "content_type": photo.get("content_type", "image/jpeg"),
+        })
+
     # Email recipients
     _email_list = ["chayaf@opusoperations.com"]
     fields.append({"name": "Email_To", "text": ";".join(_email_list)})

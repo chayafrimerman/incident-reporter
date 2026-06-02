@@ -586,6 +586,7 @@
                 <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Verbal_Warning"> Verbal Warning</label>
                 <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Written_Warning"> Written Warning</label>
                 <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Counseling_Session"> Counseling Session</label>
+                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Text" id="cb_Text" onchange="onTextChecked(this)"> Text</label>
                 <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Suspension"> Suspension</label>
                 <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Termination"> Termination</label>
               </div>
@@ -627,6 +628,18 @@
               <span class="ai-badge">AI</span>
               <label>Employee's Reaction</label>
               <textarea name="Employee_Reaction" rows="2" placeholder="How the employee responded..."></textarea>
+            </div>
+          </div>
+        </div>
+
+        <!-- Photos — required when Text is checked -->
+        <div class="form-section" id="emp_photo_section" style="display:none">
+          <div class="section-label" style="color:#ef4444">Photos <span style="font-size:10px;font-weight:400;text-transform:none;letter-spacing:0;color:var(--muted)">(required when Text is selected)</span></div>
+          <div class="field-grid single">
+            <div class="field">
+              <label>Upload Photos <span class="required">*</span></label>
+              <input type="file" id="emp_photo_input" accept="image/*" multiple style="padding:8px;cursor:pointer;">
+              <div id="emp_photo_preview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
             </div>
           </div>
         </div>
@@ -1241,6 +1254,17 @@
     if (actionsTaken.length === 0) { alert("Please select at least one Action Taken."); return; }
     data.Action_Taken = actionsTaken;
 
+    // If Text is checked, photos are mandatory
+    const textChecked = actionsTaken.includes("Text");
+    const photoFiles  = document.getElementById("emp_photo_input").files;
+    if (textChecked && photoFiles.length === 0) {
+      alert("Photos are required when 'Text' is selected as an action taken.");
+      return;
+    }
+    if (photoFiles.length > 0) {
+      data.photos = await filesToBase64(photoFiles);
+    }
+
     data.Employee_name      = employee;
     data.Name_Of_Supervisor = supervisor;
     data.report_type        = "employee_occurrence";
@@ -1420,6 +1444,45 @@
       sendMessage(); // auto-send
     }
   }
+  // ── Text checkbox → show/hide photo upload ───────────────────
+  function onTextChecked(cb) {
+    const section = document.getElementById('emp_photo_section');
+    section.style.display = cb.checked ? 'block' : 'none';
+    if (!cb.checked) {
+      document.getElementById('emp_photo_input').value = '';
+      document.getElementById('emp_photo_preview').innerHTML = '';
+    }
+  }
+
+  // Photo preview thumbnails
+  document.addEventListener('change', function(e) {
+    if (e.target.id !== 'emp_photo_input') return;
+    const preview = document.getElementById('emp_photo_preview');
+    preview.innerHTML = '';
+    for (const file of e.target.files) {
+      const url = URL.createObjectURL(file);
+      const img = document.createElement('img');
+      img.src = url;
+      img.style.cssText = 'width:72px;height:72px;object-fit:cover;border-radius:6px;border:1px solid var(--border);';
+      preview.appendChild(img);
+    }
+  });
+
+  // Convert files to base64 array
+  async function filesToBase64(files) {
+    const result = [];
+    for (const file of files) {
+      const b64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload  = () => resolve(reader.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      result.push({ filename: file.name, content_type: file.type, data: b64 });
+    }
+    return result;
+  }
+
   function enableManualMode() {
     // Show the report type picker modal
     document.getElementById('reportTypeModal').classList.remove('hidden');
