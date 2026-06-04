@@ -811,15 +811,19 @@ def _submit_employee_occurrence(data):
     if data.get("Employee_Reaction"):
         fields.append({"name": "Employee_s_Reaction", "text": data["Employee_Reaction"]})
 
-    # Photos — submitted as base64 blobs to the Attachments field
+    # Photos — upload each to Opus CDN, put links in the Attachments text field
     photos = data.get("photos", [])
-    for i, photo in enumerate(photos):
-        fields.append({
-            "name": "Attachments",
-            "blob": photo.get("data", ""),
-            "filename": photo.get("filename", f"photo_{i+1}.jpg"),
-            "content_type": photo.get("content_type", "image/jpeg"),
-        })
+    if photos:
+        links = []
+        for i, photo in enumerate(photos):
+            try:
+                url = _upload_photo(photo)
+                links.append(url)
+                log.info("Photo %d uploaded: %s", i + 1, url)
+            except Exception as e:
+                log.warning("Failed to upload photo %d (%s): %s", i + 1, photo.get("filename"), e)
+        if links:
+            fields.append({"name": "Attachment", "text": "\n".join(links)})
 
     # Email recipients
     _email_list = ["chayaf@opusoperations.com"]
@@ -831,11 +835,12 @@ def _submit_employee_occurrence(data):
         "fields":     fields,
     }
 
-    # Strip photo data from log to keep it readable
+    # Strip base64 photo data from log to keep it readable
     log_payload = json.loads(json.dumps(payload))
     for f in log_payload.get("fields", []):
-        if f.get("name") == "Attachments":
-            f["blob"] = f"<{len(payload.get('fields',[]))} bytes>"
+        if f.get("name") == "Attachments" and isinstance(f.get("blob"), dict):
+            b64 = f["blob"].get("data", "")
+            f["blob"]["data"] = f"<base64 {len(b64)} chars>"
     log.info("EMPLOYEE OCCURRENCE SUBMIT payload: %s", json.dumps(log_payload, indent=2))
     r = requests.post(f"{DOFORMS_BASE}/api/v2/submissions", headers=headers, json=payload)
     log.info("EMPLOYEE OCCURRENCE SUBMIT status: %s", r.status_code)
@@ -845,9 +850,75 @@ def _submit_employee_occurrence(data):
         sid = get_session_id()
         if sid in _sessions:
             del _sessions[sid]
+        # Email photos if any were uploaded (doForms API doesn't accept inline blobs)
+        photos = data.get("photos", [])
+        if photos:
+            try:
+                _send_employee_photos_email(_email_list, data, photos)
+                log.info("Photo email sent with %d attachment(s)", len(photos))
+            except Exception as e:
+                log.warning("Failed to send photo email: %s", e)
         return jsonify({"success": True, "response": r.json()})
     else:
         return jsonify({"success": False, "error": r.text}), r.status_code
+
+
+def _upload_photo(photo, base_url="https://reports.opusoperations.com"):
+    """Upload a base64-encoded photo to the Opus upload API and return a proxy URL."""
+    from urllib.parse import quote
+    import base64 as b64mod
+    img_bytes = b64mod.b64decode(photo["data"])
+    filename  = photo.get("filename", "photo.jpg")
+    ctype     = photo.get("content_type", "image/jpeg")
+    files = {
+        "file": (filename, img_bytes, ctype),
+        "type": (None, "image"),
+    }
+    r = requests.post("https://dev.opusoperations.com/upload/upload-file", files=files)
+    r.raise_for_status()
+    azure_url = r.text.strip()
+    # Return a proxy URL so the image opens inline in the browser instead of downloading
+    return f"{base_url}/api/view-photo?url={quote(azure_url, safe='')}"
+
+
+def _send_employee_photos_email(recipients, data, photos):
+    """Email photos from an employee occurrence report as attachments."""
+    import base64
+    from email.mime.image import MIMEImage
+
+    employee  = data.get("Employee_name", "Unknown Employee")
+    action    = ", ".join(data.get("Action_Taken", [])) if isinstance(data.get("Action_Taken"), list) else data.get("Action_Taken", "")
+    subject   = f"[Employee Occurrence] Photos — {employee}"
+
+    msg = MIMEMultipart("mixed")
+    msg["Subject"] = subject
+    msg["From"]    = SMTP_FROM
+    msg["To"]      = ", ".join(recipients)
+
+    body = MIMEText(
+        f"Photos attached for Employee Occurrence Report.\n\n"
+        f"Employee: {employee}\n"
+        f"Action Taken: {action}\n"
+        f"Supervisor: {data.get('Name_Of_Supervisor', '')}\n\n"
+        f"These photos were submitted alongside the doForms occurrence report.",
+        "plain"
+    )
+    msg.attach(body)
+
+    for photo in photos:
+        try:
+            img_data = base64.b64decode(photo["data"])
+            img = MIMEImage(img_data, _subtype=photo.get("content_type", "image/jpeg").split("/")[-1])
+            img.add_header("Content-Disposition", "attachment", filename=photo.get("filename", "photo.jpg"))
+            msg.attach(img)
+        except Exception as e:
+            log.warning("Could not attach photo %s: %s", photo.get("filename"), e)
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_FROM, recipients, msg.as_string())
 
 
 def _send_incident_email(recipients_str, data, report_type):
@@ -937,6 +1008,27 @@ def feedback():
     
     print(f"[FEEDBACK] Saved to {log_file}")
     return jsonify({"ok": True})
+
+
+@app.route("/api/view-photo")
+def view_photo():
+    """Proxy an uploaded photo and serve it inline (opens in browser instead of downloading)."""
+    from urllib.parse import unquote
+    from flask import Response, stream_with_context
+    url = request.args.get("url", "")
+    if not url.startswith("https://devstoragedocument.blob.core.windows.net/"):
+        return "Invalid URL", 400
+    try:
+        r = requests.get(url, stream=True, timeout=15)
+        r.raise_for_status()
+        ctype = r.headers.get("Content-Type", "image/jpeg")
+        return Response(
+            stream_with_context(r.iter_content(chunk_size=8192)),
+            content_type=ctype,
+            headers={"Content-Disposition": "inline"},
+        )
+    except Exception as e:
+        return f"Could not load photo: {e}", 502
 
 
 @app.route("/api/logs")
