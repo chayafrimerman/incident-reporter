@@ -1,5 +1,6 @@
 credentials.py
 conversation_logs/
 __pycache__/
+_dev_archive_/
 *.pyc
 .env

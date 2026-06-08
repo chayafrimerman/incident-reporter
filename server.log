@@ -1,0 +1,112 @@
+2026-06-08 11:27:00,261 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-08 11:27:00,261 INFO [33mPress CTRL+C to quit[0m
+2026-06-08 11:27:08,483 INFO 127.0.0.1 - - [08/Jun/2026 11:27:08] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 11:27:08,578 INFO 127.0.0.1 - - [08/Jun/2026 11:27:08] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 11:27:08,593 INFO 127.0.0.1 - - [08/Jun/2026 11:27:08] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 11:27:08,819 INFO 127.0.0.1 - - [08/Jun/2026 11:27:08] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 11:27:08,880 INFO 127.0.0.1 - - [08/Jun/2026 11:27:08] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 11:27:44,669 INFO Employee occurrence submit — employee=Chaya Frimerman photos=1
+2026-06-08 11:27:44,742 INFO Employee occurrence report saved to DB (session=5e67ee59-c971-4076-a66c-ff10b7bcbe64)
+2026-06-08 11:27:44,845 ERROR Failed to generate/email employee occurrence PDF: name 'SMTP_FROM' is not defined
+2026-06-08 11:27:44,846 INFO 127.0.0.1 - - [08/Jun/2026 11:27:44] "POST /api/submit HTTP/1.1" 200 -
+2026-06-08 11:31:14,030 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-08 11:31:14,031 INFO [33mPress CTRL+C to quit[0m
+2026-06-08 11:31:20,378 INFO 127.0.0.1 - - [08/Jun/2026 11:31:20] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 11:31:20,471 INFO 127.0.0.1 - - [08/Jun/2026 11:31:20] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 11:31:20,486 INFO 127.0.0.1 - - [08/Jun/2026 11:31:20] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 11:31:20,490 INFO 127.0.0.1 - - [08/Jun/2026 11:31:20] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 11:31:20,738 INFO 127.0.0.1 - - [08/Jun/2026 11:31:20] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 11:31:20,801 INFO 127.0.0.1 - - [08/Jun/2026 11:31:20] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 11:31:51,849 INFO Employee occurrence submit — employee=Chaya Frimerman photos=1
+2026-06-08 11:31:51,925 INFO Employee occurrence report saved to DB (session=92075f77-1ea8-4840-b0f0-ed04325f98c5)
+2026-06-08 11:31:56,255 INFO PDF report emailed to ['chayaf@opusoperations.com'] (Employee_Occurrence_20260608_113152.pdf)
+2026-06-08 11:31:56,256 INFO 127.0.0.1 - - [08/Jun/2026 11:31:56] "POST /api/submit HTTP/1.1" 200 -
+2026-06-08 11:33:30,975 INFO 127.0.0.1 - - [08/Jun/2026 11:33:30] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 11:33:30,986 INFO 127.0.0.1 - - [08/Jun/2026 11:33:30] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 11:33:31,005 INFO 127.0.0.1 - - [08/Jun/2026 11:33:31] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 11:33:31,011 INFO 127.0.0.1 - - [08/Jun/2026 11:33:31] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 11:33:31,150 INFO 127.0.0.1 - - [08/Jun/2026 11:33:31] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 11:33:31,210 INFO 127.0.0.1 - - [08/Jun/2026 11:33:31] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 11:46:29,610 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-08 11:46:29,610 INFO [33mPress CTRL+C to quit[0m
+2026-06-08 11:46:33,547 INFO 127.0.0.1 - - [08/Jun/2026 11:46:33] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 11:46:33,568 INFO 127.0.0.1 - - [08/Jun/2026 11:46:33] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 11:46:33,576 INFO 127.0.0.1 - - [08/Jun/2026 11:46:33] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 11:46:33,794 INFO 127.0.0.1 - - [08/Jun/2026 11:46:33] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 11:46:33,855 INFO 127.0.0.1 - - [08/Jun/2026 11:46:33] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 11:46:42,210 INFO 127.0.0.1 - - [08/Jun/2026 11:46:42] "GET /api/dropdown/customers?name=22%20Main%20St. HTTP/1.1" 200 -
+2026-06-08 11:47:10,296 INFO Incident submit — keys: ['Job_Address', 'Customer_Name', 'Name_Of_Supervisor', 'Date_Time_Of_Report', 'Employee_name', 'Incident_Type', 'Unit_Number_Or_Location', 'Date_Time_Of_Incident', 'Describe_What_Happened', 'Who_Was_Notified', 'How_Was_It_Resolved', 'Follow_Up_Actions_Needed', 'Additional_Information']
+2026-06-08 11:47:10,884 INFO Incident PDF uploaded: https://devstoragedocument.blob.core.windows.net/upload/pdf/Incident_Report_20260608_114710_1780933642709yxAV.pdf
+2026-06-08 11:47:11,009 INFO Incident report saved to DB (session=ef5ab72f-c66c-4aa6-b24f-32715f4e714c)
+2026-06-08 11:47:13,043 INFO PDF report emailed to ['chayaf@opusoperations.com'] (Incident_Report_20260608_114711.pdf)
+2026-06-08 11:47:13,044 INFO 127.0.0.1 - - [08/Jun/2026 11:47:13] "POST /api/submit HTTP/1.1" 200 -
+2026-06-08 11:48:13,975 INFO 127.0.0.1 - - [08/Jun/2026 11:48:13] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 11:48:13,996 INFO 127.0.0.1 - - [08/Jun/2026 11:48:13] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 11:48:14,016 INFO 127.0.0.1 - - [08/Jun/2026 11:48:14] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 11:48:14,025 INFO 127.0.0.1 - - [08/Jun/2026 11:48:14] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 11:48:14,081 INFO 127.0.0.1 - - [08/Jun/2026 11:48:14] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 11:48:14,141 INFO 127.0.0.1 - - [08/Jun/2026 11:48:14] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 12:05:22,456 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-08 12:05:22,457 INFO [33mPress CTRL+C to quit[0m
+2026-06-08 12:05:26,053 INFO 127.0.0.1 - - [08/Jun/2026 12:05:26] "GET / HTTP/1.1" 200 -
+2026-06-08 12:05:26,077 INFO 127.0.0.1 - - [08/Jun/2026 12:05:26] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 12:05:26,084 INFO 127.0.0.1 - - [08/Jun/2026 12:05:26] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 12:05:26,333 INFO 127.0.0.1 - - [08/Jun/2026 12:05:26] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 12:05:26,398 INFO 127.0.0.1 - - [08/Jun/2026 12:05:26] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 12:05:29,255 INFO 127.0.0.1 - - [08/Jun/2026 12:05:29] "GET /api/email-recipients?report_type=employee_occurrence&supervisor= HTTP/1.1" 200 -
+2026-06-08 12:06:16,306 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-08 12:06:16,307 INFO [33mPress CTRL+C to quit[0m
+2026-06-08 12:06:22,967 INFO 127.0.0.1 - - [08/Jun/2026 12:06:22] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 12:06:22,984 INFO 127.0.0.1 - - [08/Jun/2026 12:06:22] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 12:06:22,991 INFO 127.0.0.1 - - [08/Jun/2026 12:06:22] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 12:06:23,224 INFO 127.0.0.1 - - [08/Jun/2026 12:06:23] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 12:06:23,284 INFO 127.0.0.1 - - [08/Jun/2026 12:06:23] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 12:06:25,230 INFO 127.0.0.1 - - [08/Jun/2026 12:06:25] "GET /api/email-recipients?report_type=employee_occurrence&supervisor= HTTP/1.1" 200 -
+2026-06-08 12:06:34,607 INFO 127.0.0.1 - - [08/Jun/2026 12:06:34] "GET /api/email-recipients?report_type=incident&supervisor= HTTP/1.1" 200 -
+2026-06-08 12:06:42,245 INFO 127.0.0.1 - - [08/Jun/2026 12:06:42] "GET /api/email-recipients?report_type=incident&supervisor=Agustin%20Gonzalez HTTP/1.1" 200 -
+2026-06-08 12:06:50,373 INFO 127.0.0.1 - - [08/Jun/2026 12:06:50] "GET /api/email-recipients?report_type=incident&supervisor=Jessel%20Martinez%20Galeano HTTP/1.1" 200 -
+2026-06-08 12:06:51,554 INFO 127.0.0.1 - - [08/Jun/2026 12:06:51] "GET /api/email-recipients?report_type=incident&supervisor=Jesus%20Mercado HTTP/1.1" 200 -
+2026-06-08 12:06:57,523 INFO 127.0.0.1 - - [08/Jun/2026 12:06:57] "GET /api/email-recipients?report_type=incident&supervisor=Jesus%20Ramos HTTP/1.1" 200 -
+2026-06-08 12:07:02,748 INFO 127.0.0.1 - - [08/Jun/2026 12:07:02] "GET /api/email-recipients?report_type=incident&supervisor=Stacy%20Nunez HTTP/1.1" 200 -
+2026-06-08 12:07:26,193 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-08 12:07:26,193 INFO [33mPress CTRL+C to quit[0m
+2026-06-08 12:07:28,586 INFO 127.0.0.1 - - [08/Jun/2026 12:07:28] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 12:07:28,605 INFO 127.0.0.1 - - [08/Jun/2026 12:07:28] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 12:07:28,611 INFO 127.0.0.1 - - [08/Jun/2026 12:07:28] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 12:07:28,838 INFO 127.0.0.1 - - [08/Jun/2026 12:07:28] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 12:07:28,898 INFO 127.0.0.1 - - [08/Jun/2026 12:07:28] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 12:07:30,576 INFO 127.0.0.1 - - [08/Jun/2026 12:07:30] "GET /api/email-recipients?report_type=incident&supervisor= HTTP/1.1" 200 -
+2026-06-08 12:07:34,669 INFO 127.0.0.1 - - [08/Jun/2026 12:07:34] "GET /api/email-recipients?report_type=incident&supervisor=Stacy%20Nunez HTTP/1.1" 200 -
+2026-06-08 12:07:53,603 INFO 127.0.0.1 - - [08/Jun/2026 12:07:53] "GET /api/email-recipients?report_type=incident&supervisor=Jesus%20Ramos HTTP/1.1" 200 -
+2026-06-08 12:08:05,653 INFO 127.0.0.1 - - [08/Jun/2026 12:08:05] "GET /api/email-recipients?report_type=incident&supervisor=Stacy%20Nunez HTTP/1.1" 200 -
+2026-06-08 12:08:16,679 INFO 127.0.0.1 - - [08/Jun/2026 12:08:16] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 12:08:16,700 INFO 127.0.0.1 - - [08/Jun/2026 12:08:16] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 12:08:16,705 INFO 127.0.0.1 - - [08/Jun/2026 12:08:16] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 12:08:16,763 INFO 127.0.0.1 - - [08/Jun/2026 12:08:16] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 12:08:16,821 INFO 127.0.0.1 - - [08/Jun/2026 12:08:16] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 12:08:20,446 INFO 127.0.0.1 - - [08/Jun/2026 12:08:20] "GET /api/email-recipients?report_type=incident&supervisor= HTTP/1.1" 200 -
+2026-06-08 12:08:26,182 INFO 127.0.0.1 - - [08/Jun/2026 12:08:26] "GET /api/email-recipients?report_type=incident&supervisor=Stacy%20Nunez HTTP/1.1" 200 -
+2026-06-08 12:08:35,743 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-08 12:08:35,743 INFO [33mPress CTRL+C to quit[0m
+2026-06-08 12:08:37,329 INFO 127.0.0.1 - - [08/Jun/2026 12:08:37] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 12:08:37,345 INFO 127.0.0.1 - - [08/Jun/2026 12:08:37] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 12:08:37,355 INFO 127.0.0.1 - - [08/Jun/2026 12:08:37] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 12:08:37,571 INFO 127.0.0.1 - - [08/Jun/2026 12:08:37] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 12:08:37,625 INFO 127.0.0.1 - - [08/Jun/2026 12:08:37] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-08 12:08:39,342 INFO 127.0.0.1 - - [08/Jun/2026 12:08:39] "GET /api/email-recipients?report_type=incident&supervisor= HTTP/1.1" 200 -
+2026-06-08 12:08:42,549 INFO 127.0.0.1 - - [08/Jun/2026 12:08:42] "GET /api/email-recipients?report_type=incident&supervisor=Stacy%20Nunez HTTP/1.1" 200 -
+2026-06-08 12:09:07,978 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-08 12:09:07,978 INFO [33mPress CTRL+C to quit[0m
+2026-06-08 12:09:52,926 INFO 127.0.0.1 - - [08/Jun/2026 12:09:52] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-08 12:09:52,943 INFO 127.0.0.1 - - [08/Jun/2026 12:09:52] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-08 12:09:52,949 INFO 127.0.0.1 - - [08/Jun/2026 12:09:52] "POST /api/reset HTTP/1.1" 200 -
+2026-06-08 12:09:53,165 INFO 127.0.0.1 - - [08/Jun/2026 12:09:53] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-08 12:09:53,220 INFO 127.0.0.1 - - [08/Jun/2026 12:09:53] "GET /api/dropdown/employees HTTP/1.1" 200 -

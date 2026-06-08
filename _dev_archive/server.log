@@ -1,0 +1,939 @@
+2026-06-03 14:32:16,296 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-03 14:32:16,297 INFO [33mPress CTRL+C to quit[0m
+2026-06-03 14:32:27,323 INFO 127.0.0.1 - - [03/Jun/2026 14:32:27] "GET / HTTP/1.1" 200 -
+2026-06-03 14:32:27,596 INFO 127.0.0.1 - - [03/Jun/2026 14:32:27] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-03 14:32:27,609 INFO 127.0.0.1 - - [03/Jun/2026 14:32:27] "POST /api/reset HTTP/1.1" 200 -
+2026-06-03 14:32:27,840 INFO 127.0.0.1 - - [03/Jun/2026 14:32:27] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-03 14:32:27,904 INFO 127.0.0.1 - - [03/Jun/2026 14:32:27] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-03 14:33:02,415 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkZ-E5QsM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "tdht"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "65465-05-04T04:06"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/03/2026 02:32:00 PM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "ytdjj"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Record_of_Discussion",
+        "Written_Warning",
+        "Text"
+      ]
+    },
+    {
+      "name": "Attachments",
+      "blob": "<5 bytes>",
+      "filename": "powerbi.png",
+      "content_type": "image/png"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-03 14:33:09,606 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-03 14:33:09,607 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Record_of_Discussion","Written_Warning","Text"],"selections":[{"text":"Record_of_Discussion","label":{"en":"Record of Discussion"}},{"text":"Written_Warning","label":{"en":"Written Warning"}},{"text":"Text","label":{"en":"Text"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"65465-05-04T04:06"},{"name":"Employee_Title","data":"text","type":"text","text":"tdht"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/03/2026 02:32:00 PM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"ytdjj"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrWi1FNVFzTRiAgJLxlNCcCww","id":"opusop$$06012026183429$$Published&&12","index":12,"name":"12","type":"submission","formName":"Employee_Occurance_Test2","formVersion":1.0,"createTime":"2026-06-03T18:33:15.890Z","receiveTime":"2026-06-03T18:33:15.480Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-03T18:33:15.890Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkZ-E5QsM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-03 14:33:09,608 INFO 127.0.0.1 - - [03/Jun/2026 14:33:09] "POST /api/submit HTTP/1.1" 200 -
+2026-06-04 09:38:50,200 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 09:38:50,201 INFO [33mPress CTRL+C to quit[0m
+2026-06-04 09:39:00,042 INFO 127.0.0.1 - - [04/Jun/2026 09:39:00] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-04 09:39:00,152 INFO 127.0.0.1 - - [04/Jun/2026 09:39:00] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 09:39:00,169 INFO 127.0.0.1 - - [04/Jun/2026 09:39:00] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 09:39:00,393 INFO 127.0.0.1 - - [04/Jun/2026 09:39:00] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 09:39:00,454 INFO 127.0.0.1 - - [04/Jun/2026 09:39:00] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 09:39:29,412 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkZ-E5QsM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "ytjy"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Incident_Type",
+          "text": "Job Performance"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "74765-05-06T07:06"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/04/2026 09:39:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "mjmfhm"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Record_of_Discussion",
+        "Counseling_Session"
+      ]
+    },
+    {
+      "name": "Attachments",
+      "data": "blob",
+      "type": "image",
+      "blob": {
+        "data": "<base64 190844 chars>",
+        "type": "png",
+        "fileName": "powerbi.png"
+      }
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-04 09:39:33,310 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-04 09:39:33,310 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Record_of_Discussion","Counseling_Session"],"selections":[{"text":"Record_of_Discussion","label":{"en":"Record of Discussion"}},{"text":"Counseling_Session","label":{"en":"Counseling Session"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Incident_Type","data":"text","type":"text","text":"Job Performance"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"74765-05-06T07:06"},{"name":"Employee_Title","data":"text","type":"text","text":"ytjy"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/04/2026 09:39:00 AM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"mjmfhm"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrWi1FNVFzTRiAgJLR0uqfCAw","id":"opusop$$06012026183429$$Published&&14","index":14,"name":"14","type":"submission","formName":"Employee_Occurance_Test2","formVersion":1.0,"createTime":"2026-06-04T13:39:43.031Z","receiveTime":"2026-06-04T13:39:42.832Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-04T13:39:43.031Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkZ-E5QsM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-04 09:39:35,008 INFO Photo email sent with 1 attachment(s)
+2026-06-04 09:39:35,009 INFO 127.0.0.1 - - [04/Jun/2026 09:39:35] "POST /api/submit HTTP/1.1" 200 -
+2026-06-04 10:55:20,902 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 10:55:20,902 INFO [33mPress CTRL+C to quit[0m
+2026-06-04 10:55:23,469 INFO 127.0.0.1 - - [04/Jun/2026 10:55:23] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-04 10:55:23,579 INFO 127.0.0.1 - - [04/Jun/2026 10:55:23] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 10:55:23,588 INFO 127.0.0.1 - - [04/Jun/2026 10:55:23] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 10:55:23,809 INFO 127.0.0.1 - - [04/Jun/2026 10:55:23] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 10:55:23,864 INFO 127.0.0.1 - - [04/Jun/2026 10:55:23] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 10:55:33,589 INFO 127.0.0.1 - - [04/Jun/2026 10:55:33] "GET /api/dropdown/customers?name=Chaya%20Frimerman HTTP/1.1" 200 -
+2026-06-04 10:55:39,811 INFO 127.0.0.1 - - [04/Jun/2026 10:55:39] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-04 10:55:39,838 INFO 127.0.0.1 - - [04/Jun/2026 10:55:39] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 10:55:39,844 INFO 127.0.0.1 - - [04/Jun/2026 10:55:39] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 10:55:39,899 INFO 127.0.0.1 - - [04/Jun/2026 10:55:39] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 10:55:39,956 INFO 127.0.0.1 - - [04/Jun/2026 10:55:39] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 10:55:59,396 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkZ-E5QsM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "yjytj"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Incident_Type",
+          "text": "Time and Attendance"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "65464-05-04T05:06"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/04/2026 10:55:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "jytdjy"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Record_of_Discussion"
+      ]
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-04 10:56:02,757 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-04 10:56:02,758 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Record_of_Discussion"],"selections":[{"text":"Record_of_Discussion","label":{"en":"Record of Discussion"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Incident_Type","data":"text","type":"text","text":"Time and Attendance"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"65464-05-04T05:06"},{"name":"Employee_Title","data":"text","type":"text","text":"yjytj"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/04/2026 10:55:00 AM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"jytdjy"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrWi1FNVFzTRiAgJLx_Mz4CQw","id":"opusop$$06012026183429$$Published&&22","index":22,"name":"22","type":"submission","formName":"Employee_Occurance_Test2","formVersion":1.0,"createTime":"2026-06-04T14:56:11.697Z","receiveTime":"2026-06-04T14:56:11.074Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-04T14:56:11.697Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkZ-E5QsM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-04 10:56:02,759 INFO 127.0.0.1 - - [04/Jun/2026 10:56:02] "POST /api/submit HTTP/1.1" 200 -
+2026-06-04 11:53:46,640 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 11:53:46,640 INFO [33mPress CTRL+C to quit[0m
+2026-06-04 11:53:52,719 INFO 127.0.0.1 - - [04/Jun/2026 11:53:52] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-04 11:53:52,746 INFO 127.0.0.1 - - [04/Jun/2026 11:53:52] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 11:53:52,751 INFO 127.0.0.1 - - [04/Jun/2026 11:53:52] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 11:53:52,978 INFO 127.0.0.1 - - [04/Jun/2026 11:53:52] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 11:53:53,041 INFO 127.0.0.1 - - [04/Jun/2026 11:53:53] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 11:54:21,486 WARNING Failed to upload photo 1 (powerbi.png): 400 Client Error: Bad Request for url: https://dev.opusoperations.com/upload/upload-file
+2026-06-04 11:54:21,487 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkZ-E5QsM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "tdjhtd"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Incident_Type",
+          "text": "Job Performance"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "54654-03-04T06:56"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/04/2026 11:53:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "jydtjytdj"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Record_of_Discussion",
+        "Verbal_Warning",
+        "Text"
+      ]
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-04 11:54:24,308 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-04 11:54:24,309 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Record_of_Discussion","Verbal_Warning","Text"],"selections":[{"text":"Record_of_Discussion","label":{"en":"Record of Discussion"}},{"text":"Verbal_Warning","label":{"en":"Verbal Warning"}},{"text":"Text","label":{"en":"Text"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Incident_Type","data":"text","type":"text","text":"Job Performance"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"54654-03-04T06:56"},{"name":"Employee_Title","data":"text","type":"text","text":"tdjhtd"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/04/2026 11:53:00 AM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"jydtjytdj"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrWi1FNVFzTRiAgJLx_PXiCAw","id":"opusop$$06012026183429$$Published&&24","index":24,"name":"24","type":"submission","formName":"Employee_Occurance_Test2","formVersion":1.0,"createTime":"2026-06-04T15:54:33.778Z","receiveTime":"2026-06-04T15:54:33.499Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-04T15:54:33.778Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkZ-E5QsM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-04 11:54:25,673 INFO Photo email sent with 1 attachment(s)
+2026-06-04 11:54:25,675 INFO 127.0.0.1 - - [04/Jun/2026 11:54:25] "POST /api/submit HTTP/1.1" 200 -
+2026-06-04 13:26:38,498 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 13:26:38,499 INFO [33mPress CTRL+C to quit[0m
+2026-06-04 13:26:48,028 INFO 127.0.0.1 - - [04/Jun/2026 13:26:48] "GET / HTTP/1.1" 200 -
+2026-06-04 13:26:48,264 INFO 127.0.0.1 - - [04/Jun/2026 13:26:48] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 13:26:48,277 INFO 127.0.0.1 - - [04/Jun/2026 13:26:48] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 13:26:48,520 INFO 127.0.0.1 - - [04/Jun/2026 13:26:48] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 13:26:48,584 INFO 127.0.0.1 - - [04/Jun/2026 13:26:48] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 13:27:18,773 WARNING Failed to upload photo 1 (powerbi.png): 400 Client Error: Bad Request for url: https://dev.opusoperations.com/upload/upload-file
+2026-06-04 13:27:18,775 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "djhggj"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Incident_Type",
+          "text": "Professional Conduct"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "54654-04-06T06:54"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/04/2026 01:26:00 PM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "mjhmjh"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Record_of_Discussion",
+        "Written_Warning",
+        "Counseling_Session"
+      ]
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-04 13:27:21,192 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-04 13:27:21,193 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Record_of_Discussion","Written_Warning","Counseling_Session"],"selections":[{"text":"Record_of_Discussion","label":{"en":"Record of Discussion"}},{"text":"Written_Warning","label":{"en":"Written Warning"}},{"text":"Counseling_Session","label":{"en":"Counseling Session"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Incident_Type","data":"text","type":"text","text":"Professional Conduct"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"54654-04-06T06:54"},{"name":"Employee_Title","data":"text","type":"text","text":"djhggj"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/04/2026 01:26:00 PM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"mjhmjh"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJLxmZavCQw","id":"opusop$$06042026154844$$Published&&2","index":2,"name":"2","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-04T17:27:30.449Z","receiveTime":"2026-06-04T17:27:30.250Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-04T17:27:30.449Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-04 13:27:22,621 INFO Photo email sent with 1 attachment(s)
+2026-06-04 13:27:22,622 INFO 127.0.0.1 - - [04/Jun/2026 13:27:22] "POST /api/submit HTTP/1.1" 200 -
+2026-06-04 13:33:17,972 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 13:33:17,973 INFO [33mPress CTRL+C to quit[0m
+2026-06-04 13:33:24,262 INFO 127.0.0.1 - - [04/Jun/2026 13:33:24] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-04 13:33:24,293 INFO 127.0.0.1 - - [04/Jun/2026 13:33:24] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 13:33:24,300 INFO 127.0.0.1 - - [04/Jun/2026 13:33:24] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 13:33:24,542 INFO 127.0.0.1 - - [04/Jun/2026 13:33:24] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 13:33:24,602 INFO 127.0.0.1 - - [04/Jun/2026 13:33:24] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 13:33:48,997 INFO Photo 1 uploaded: https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780594439628m50O.png
+2026-06-04 13:33:48,997 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "ytrdytr"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Incident_Type",
+          "text": "Professional Conduct"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "54654-04-06T04:06"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/04/2026 01:33:00 PM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "kufykuy"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Record_of_Discussion",
+        "Written_Warning",
+        "Text"
+      ]
+    },
+    {
+      "name": "Attachments",
+      "text": "https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780594439628m50O.png"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-04 13:33:53,244 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-04 13:33:53,244 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Record_of_Discussion","Written_Warning","Text"],"selections":[{"text":"Record_of_Discussion","label":{"en":"Record of Discussion"}},{"text":"Written_Warning","label":{"en":"Written Warning"}},{"text":"Text","label":{"en":"Text"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Incident_Type","data":"text","type":"text","text":"Professional Conduct"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"54654-04-06T04:06"},{"name":"Employee_Title","data":"text","type":"text","text":"ytrdytr"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/04/2026 01:33:00 PM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"kufykuy"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJLxwoehCgw","id":"opusop$$06042026154844$$Published&&4","index":4,"name":"4","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-04T17:34:01.576Z","receiveTime":"2026-06-04T17:34:01.272Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-04T17:34:01.576Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-04 13:33:54,484 INFO Photo email sent with 1 attachment(s)
+2026-06-04 13:33:54,486 INFO 127.0.0.1 - - [04/Jun/2026 13:33:54] "POST /api/submit HTTP/1.1" 200 -
+2026-06-04 13:45:21,442 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 13:45:21,442 INFO [33mPress CTRL+C to quit[0m
+2026-06-04 13:45:26,344 INFO 127.0.0.1 - - [04/Jun/2026 13:45:26] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-04 13:45:26,367 INFO 127.0.0.1 - - [04/Jun/2026 13:45:26] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 13:45:26,373 INFO 127.0.0.1 - - [04/Jun/2026 13:45:26] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 13:45:26,760 INFO 127.0.0.1 - - [04/Jun/2026 13:45:26] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 13:45:26,839 INFO 127.0.0.1 - - [04/Jun/2026 13:45:26] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 13:45:47,240 INFO Photo 1 uploaded: https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780595157846V4lD.png
+2026-06-04 13:45:47,240 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "6u65"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "55465-04-06T04:06"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/04/2026 01:45:00 PM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "ytdjut"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Verbal_Warning"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780595157846V4lD.png"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-04 13:45:50,323 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-04 13:45:50,323 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Verbal_Warning"],"selections":[{"text":"Verbal_Warning","label":{"en":"Verbal Warning"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"55465-04-06T04:06"},{"name":"Employee_Title","data":"text","type":"text","text":"6u65"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/04/2026 01:45:00 PM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"ytdjut"},{"name":"Attachment","data":"text","type":"text","text":"https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780595157846V4lD.png"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJKx95r5Cgw","id":"opusop$$06042026154844$$Published&&6","index":6,"name":"6","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-04T17:45:59.324Z","receiveTime":"2026-06-04T17:45:59.037Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-04T17:45:59.324Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-04 13:45:51,749 INFO Photo email sent with 1 attachment(s)
+2026-06-04 13:45:51,750 INFO 127.0.0.1 - - [04/Jun/2026 13:45:51] "POST /api/submit HTTP/1.1" 200 -
+2026-06-04 13:55:01,858 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 13:55:01,858 INFO [33mPress CTRL+C to quit[0m
+2026-06-04 13:55:07,975 INFO 127.0.0.1 - - [04/Jun/2026 13:55:07] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-04 13:55:08,001 INFO 127.0.0.1 - - [04/Jun/2026 13:55:08] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 13:55:08,007 INFO 127.0.0.1 - - [04/Jun/2026 13:55:08] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 13:55:08,255 INFO 127.0.0.1 - - [04/Jun/2026 13:55:08] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 13:55:08,322 INFO 127.0.0.1 - - [04/Jun/2026 13:55:08] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 13:55:42,623 INFO Photo 1 uploaded: https://reports.opusoperations.com/api/view-photo?url=https%3A%2F%2Fdevstoragedocument.blob.core.windows.net%2Fupload%2Fimage%2Fpowerbi_1780595753234ah83.png
+2026-06-04 13:55:42,623 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "vjv"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "65637-04-05T03:45"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/04/2026 01:55:00 PM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "bhkv"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Verbal_Warning"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "https://reports.opusoperations.com/api/view-photo?url=https%3A%2F%2Fdevstoragedocument.blob.core.windows.net%2Fupload%2Fimage%2Fpowerbi_1780595753234ah83.png"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-04 13:55:46,432 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-04 13:55:46,432 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Verbal_Warning"],"selections":[{"text":"Verbal_Warning","label":{"en":"Verbal Warning"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"65637-04-05T03:45"},{"name":"Employee_Title","data":"text","type":"text","text":"vjv"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/04/2026 01:55:00 PM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"bhkv"},{"name":"Attachment","data":"text","type":"text","text":"https://reports.opusoperations.com/api/view-photo?url=https%3A%2F%2Fdevstoragedocument.blob.core.windows.net%2Fupload%2Fimage%2Fpowerbi_1780595753234ah83.png"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJLxoordCww","id":"opusop$$06042026154844$$Published&&8","index":8,"name":"8","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-04T17:55:55.330Z","receiveTime":"2026-06-04T17:55:54.831Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-04T17:55:55.330Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-04 13:55:47,695 INFO Photo email sent with 1 attachment(s)
+2026-06-04 13:55:47,696 INFO 127.0.0.1 - - [04/Jun/2026 13:55:47] "POST /api/submit HTTP/1.1" 200 -
+2026-06-04 14:14:30,558 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-04 14:14:30,558 INFO [33mPress CTRL+C to quit[0m
+2026-06-04 14:14:37,485 INFO 127.0.0.1 - - [04/Jun/2026 14:14:37] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-04 14:14:37,517 INFO 127.0.0.1 - - [04/Jun/2026 14:14:37] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-04 14:14:37,523 INFO 127.0.0.1 - - [04/Jun/2026 14:14:37] "POST /api/reset HTTP/1.1" 200 -
+2026-06-04 14:14:37,749 INFO 127.0.0.1 - - [04/Jun/2026 14:14:37] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-04 14:14:37,811 INFO 127.0.0.1 - - [04/Jun/2026 14:14:37] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-04 14:15:03,473 INFO Photo 1 uploaded: https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780596914084n3wR.png
+2026-06-04 14:15:03,474 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "htrh"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Incident_Type",
+          "text": "Professional Conduct"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "64565-05-04T03:53"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/04/2026 02:14:00 PM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "dytjytj"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Verbal_Warning",
+        "Suspension"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780596914084n3wR.png"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-04 14:15:05,813 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-04 14:15:05,814 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Incident_Type","data":"text","type":"text","text":"Professional Conduct"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"64565-05-04T03:53"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Employee_Title","data":"text","type":"text","text":"htrh"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/04/2026 02:14:00 PM"}]},{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Verbal_Warning","Suspension"],"selections":[{"text":"Verbal_Warning","label":{"en":"Verbal Warning"}},{"text":"Suspension","label":{"en":"Suspension"}}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"dytjytj"},{"name":"Attachment","data":"text","type":"text","text":"https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780596914084n3wR.png"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJKx9_mvCww","id":"opusop$$06042026154844$$Published&&10","index":10,"name":"10","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-04T18:15:15.567Z","receiveTime":"2026-06-04T18:15:15.331Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-04T18:15:15.567Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-04 14:15:07,076 INFO Photo email sent with 1 attachment(s)
+2026-06-04 14:15:07,077 INFO 127.0.0.1 - - [04/Jun/2026 14:15:07] "POST /api/submit HTTP/1.1" 200 -
+2026-06-05 09:32:54,686 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-05 09:32:54,687 INFO [33mPress CTRL+C to quit[0m
+2026-06-05 09:33:01,183 INFO 127.0.0.1 - - [05/Jun/2026 09:33:01] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-05 09:33:01,269 INFO 127.0.0.1 - - [05/Jun/2026 09:33:01] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-05 09:33:01,283 INFO 127.0.0.1 - - [05/Jun/2026 09:33:01] "POST /api/reset HTTP/1.1" 200 -
+2026-06-05 09:33:01,654 INFO 127.0.0.1 - - [05/Jun/2026 09:33:01] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-05 09:33:01,724 INFO 127.0.0.1 - - [05/Jun/2026 09:33:01] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-05 09:33:29,921 INFO Photo 1 uploaded: https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666421801y3ln.png
+2026-06-05 09:33:29,921 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "hdht"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Incident_Type",
+          "text": "Professional Conduct"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "64653-05-04T06:36"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/05/2026 09:33:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "tjstrsrj"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Counseling_Session",
+        "Text"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666421801y3ln.png"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-05 09:33:36,754 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-05 09:33:36,754 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Incident_Type","data":"text","type":"text","text":"Professional Conduct"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"64653-05-04T06:36"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Employee_Title","data":"text","type":"text","text":"hdht"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/05/2026 09:33:00 AM"}]},{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Counseling_Session","Text"],"selections":[{"text":"Counseling_Session","label":{"en":"Counseling Session"}},{"text":"Text","label":{"en":"Text"}}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"tjstrsrj"},{"name":"Attachment","data":"text","type":"text","text":"https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666421801y3ln.png"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJLRquvfCgw","id":"opusop$$06042026154844$$Published&&12","index":12,"name":"12","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-05T13:33:44.771Z","receiveTime":"2026-06-05T13:33:44.439Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-05T13:33:44.771Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-05 09:33:38,518 INFO Photo email sent with 1 attachment(s)
+2026-06-05 09:33:38,520 INFO 127.0.0.1 - - [05/Jun/2026 09:33:38] "POST /api/submit HTTP/1.1" 200 -
+2026-06-05 09:38:39,559 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-05 09:38:39,559 INFO [33mPress CTRL+C to quit[0m
+2026-06-05 09:39:05,720 INFO 127.0.0.1 - - [05/Jun/2026 09:39:05] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-05 09:39:05,750 INFO 127.0.0.1 - - [05/Jun/2026 09:39:05] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-05 09:39:05,757 INFO 127.0.0.1 - - [05/Jun/2026 09:39:05] "POST /api/reset HTTP/1.1" 200 -
+2026-06-05 09:39:06,118 INFO 127.0.0.1 - - [05/Jun/2026 09:39:06] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-05 09:39:06,185 INFO 127.0.0.1 - - [05/Jun/2026 09:39:06] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-05 09:39:22,013 INFO Photo 1 uploaded: https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666773898aPq5.png
+2026-06-05 09:39:22,013 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Employee_Title",
+          "text": "htrh"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/05/2026 09:39:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "tdtjh"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Verbal_Warning",
+        "Counseling_Session"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666773898aPq5.png"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-05 09:39:27,460 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-05 09:39:27,460 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Verbal_Warning","Counseling_Session"],"selections":[{"text":"Verbal_Warning","label":{"en":"Verbal Warning"}},{"text":"Counseling_Session","label":{"en":"Counseling Session"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Employee_Title","data":"text","type":"text","text":"htrh"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/05/2026 09:39:00 AM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"tdtjh"},{"name":"Attachment","data":"text","type":"text","text":"https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666773898aPq5.png"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJLR6_aQCgw","id":"opusop$$06042026154844$$Published&&14","index":14,"name":"14","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-05T13:39:35.889Z","receiveTime":"2026-06-05T13:39:35.574Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-05T13:39:35.889Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-05 09:39:29,476 INFO Photo email sent with 1 attachment(s)
+2026-06-05 09:39:29,477 INFO 127.0.0.1 - - [05/Jun/2026 09:39:29] "POST /api/submit HTTP/1.1" 200 -
+2026-06-05 09:40:31,136 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-05 09:40:31,137 INFO [33mPress CTRL+C to quit[0m
+2026-06-05 09:40:38,937 INFO 127.0.0.1 - - [05/Jun/2026 09:40:38] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-05 09:40:38,960 INFO 127.0.0.1 - - [05/Jun/2026 09:40:38] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-05 09:40:38,966 INFO 127.0.0.1 - - [05/Jun/2026 09:40:38] "POST /api/reset HTTP/1.1" 200 -
+2026-06-05 09:40:39,365 INFO 127.0.0.1 - - [05/Jun/2026 09:40:39] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-05 09:40:39,434 INFO 127.0.0.1 - - [05/Jun/2026 09:40:39] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-05 09:40:54,110 INFO Photo 1 uploaded: https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666866017xk82.png?Content-Disposition=inline
+2026-06-05 09:40:54,111 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/05/2026 09:40:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "thr"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Record_of_Discussion"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666866017xk82.png?Content-Disposition=inline"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-05 09:40:56,349 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-05 09:40:56,349 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Record_of_Discussion"],"selections":[{"text":"Record_of_Discussion","label":{"en":"Record of Discussion"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/05/2026 09:40:00 AM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"thr"},{"name":"Attachment","data":"text","type":"text","text":"https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_1780666866017xk82.png?Content-Disposition=inline"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJKJ6KvxCQw","id":"opusop$$06042026154844$$Published&&16","index":16,"name":"16","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-05T13:41:07.166Z","receiveTime":"2026-06-05T13:41:06.851Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-05T13:41:07.166Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-05 09:40:57,948 INFO Photo email sent with 1 attachment(s)
+2026-06-05 09:40:57,950 INFO 127.0.0.1 - - [05/Jun/2026 09:40:57] "POST /api/submit HTTP/1.1" 200 -
+2026-06-05 09:44:59,587 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-05 09:44:59,587 INFO [33mPress CTRL+C to quit[0m
+2026-06-05 09:45:28,254 INFO 127.0.0.1 - - [05/Jun/2026 09:45:28] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-05 09:45:28,282 INFO 127.0.0.1 - - [05/Jun/2026 09:45:28] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-05 09:45:28,288 INFO 127.0.0.1 - - [05/Jun/2026 09:45:28] "POST /api/reset HTTP/1.1" 200 -
+2026-06-05 09:45:28,628 INFO 127.0.0.1 - - [05/Jun/2026 09:45:28] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-05 09:45:28,696 INFO 127.0.0.1 - - [05/Jun/2026 09:45:28] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-05 09:45:47,510 INFO Photo 1 uploaded: http://127.0.0.1:5000/image-proxy?url=https%3A%2F%2Fdevstoragedocument.blob.core.windows.net%2Fupload%2Fimage%2Fpowerbi_17806671593962Bw9.png
+2026-06-05 09:45:47,510 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Date_Time_of_Incident",
+          "text": "43543-03-05T04:54"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/05/2026 09:45:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "htrshtr"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Text"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "http://127.0.0.1:5000/image-proxy?url=https%3A%2F%2Fdevstoragedocument.blob.core.windows.net%2Fupload%2Fimage%2Fpowerbi_17806671593962Bw9.png"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-05 09:45:51,718 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-05 09:45:51,718 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Text"],"selections":[{"text":"Text","label":{"en":"Text"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Date_Time_of_Incident","data":"text","type":"text","text":"43543-03-05T04:54"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/05/2026 09:45:00 AM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"htrshtr"},{"name":"Attachment","data":"text","type":"text","text":"http://127.0.0.1:5000/image-proxy?url=https%3A%2F%2Fdevstoragedocument.blob.core.windows.net%2Fupload%2Fimage%2Fpowerbi_17806671593962Bw9.png"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJKR9oCFCgw","id":"opusop$$06042026154844$$Published&&18","index":18,"name":"18","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-05T13:46:01.664Z","receiveTime":"2026-06-05T13:46:01.403Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-05T13:46:01.664Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-05 09:45:54,072 INFO Photo email sent with 1 attachment(s)
+2026-06-05 09:45:54,073 INFO 127.0.0.1 - - [05/Jun/2026 09:45:54] "POST /api/submit HTTP/1.1" 200 -
+2026-06-05 09:46:13,687 INFO 127.0.0.1 - - [05/Jun/2026 09:46:13] "GET /image-proxy?url=https://devstoragedocument.blob.core.windows.net/upload/image/powerbi_17806671593962Bw9.png HTTP/1.1" 200 -
+2026-06-05 09:49:32,179 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-05 09:49:32,179 INFO [33mPress CTRL+C to quit[0m
+2026-06-05 09:49:40,920 INFO 127.0.0.1 - - [05/Jun/2026 09:49:40] "POST /api/reset HTTP/1.1" 200 -
+2026-06-05 09:49:41,025 INFO 127.0.0.1 - - [05/Jun/2026 09:49:41] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-05 09:49:41,050 INFO 127.0.0.1 - - [05/Jun/2026 09:49:41] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-05 09:49:41,054 INFO 127.0.0.1 - - [05/Jun/2026 09:49:41] "POST /api/reset HTTP/1.1" 200 -
+2026-06-05 09:49:41,397 INFO 127.0.0.1 - - [05/Jun/2026 09:49:41] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-05 09:49:41,459 INFO 127.0.0.1 - - [05/Jun/2026 09:49:41] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-05 09:49:59,562 INFO Photo 1 uploaded: https://devstoragedocument.blob.core.windows.net/upload/pdf/powerbi_1780667411439RNzG.pdf
+2026-06-05 09:49:59,562 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/05/2026 09:49:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "hjytdjyt"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Verbal_Warning"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "https://devstoragedocument.blob.core.windows.net/upload/pdf/powerbi_1780667411439RNzG.pdf"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-05 09:50:02,396 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-05 09:50:02,396 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Verbal_Warning"],"selections":[{"text":"Verbal_Warning","label":{"en":"Verbal Warning"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/05/2026 09:49:00 AM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"hjytdjyt"},{"name":"Attachment","data":"text","type":"text","text":"https://devstoragedocument.blob.core.windows.net/upload/pdf/powerbi_1780667411439RNzG.pdf"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrZXpGNXdnTRiAgJLR6660CQw","id":"opusop$$06042026154844$$Published&&20","index":20,"name":"20","type":"submission","formName":"Employee_Occurance_Test4","formVersion":1.0,"createTime":"2026-06-05T13:50:13.224Z","receiveTime":"2026-06-05T13:50:12.860Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-05T13:50:13.224Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkezF5wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-05 09:50:03,699 INFO Photo email sent with 1 attachment(s)
+2026-06-05 09:50:03,701 INFO 127.0.0.1 - - [05/Jun/2026 09:50:03] "POST /api/submit HTTP/1.1" 200 -
+2026-06-05 10:09:52,280 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-05 10:09:52,280 INFO [33mPress CTRL+C to quit[0m
+2026-06-05 10:09:57,110 INFO 127.0.0.1 - - [05/Jun/2026 10:09:57] "POST /api/reset HTTP/1.1" 200 -
+2026-06-05 10:09:57,207 INFO 127.0.0.1 - - [05/Jun/2026 10:09:57] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-05 10:09:57,234 INFO 127.0.0.1 - - [05/Jun/2026 10:09:57] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-05 10:09:57,238 INFO 127.0.0.1 - - [05/Jun/2026 10:09:57] "POST /api/reset HTTP/1.1" 200 -
+2026-06-05 10:09:57,506 INFO 127.0.0.1 - - [05/Jun/2026 10:09:57] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-05 10:09:57,582 INFO 127.0.0.1 - - [05/Jun/2026 10:09:57] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-05 10:10:17,182 INFO Photo 1 uploaded: https://devstoragedocument.blob.core.windows.net/upload/pdf/powerbi_17806686290547n3F.pdf
+2026-06-05 10:10:17,182 INFO EMPLOYEE OCCURRENCE SUBMIT payload: {
+  "formKey": "ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkba90wgM",
+  "projectKey": "ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM",
+  "fields": [
+    {
+      "name": "untitled2",
+      "fields": [
+        {
+          "name": "Employee_Name",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Name_of_Supervisor",
+          "text": "Chaya Frimerman"
+        },
+        {
+          "name": "Date_Time_of_Communication",
+          "text": "06/05/2026 10:09:00 AM"
+        }
+      ]
+    },
+    {
+      "name": "Reason_for_Action",
+      "text": "thsrhtsh"
+    },
+    {
+      "name": "Action_Taken",
+      "strings": [
+        "Verbal_Warning",
+        "Written_Warning"
+      ]
+    },
+    {
+      "name": "Attachment",
+      "text": "https://devstoragedocument.blob.core.windows.net/upload/pdf/powerbi_17806686290547n3F.pdf"
+    },
+    {
+      "name": "Email_To",
+      "text": "chayaf@opusoperations.com"
+    }
+  ]
+}
+2026-06-05 10:10:19,490 INFO EMPLOYEE OCCURRENCE SUBMIT status: 200
+2026-06-05 10:10:19,490 INFO EMPLOYEE OCCURRENCE SUBMIT response: {"code":200,"status":"0","submission":{"fields":[{"name":"Action_Taken","data":"strings","type":"choose_multiple","strings":["Verbal_Warning","Written_Warning"],"selections":[{"text":"Verbal_Warning","label":{"en":"Verbal Warning"}},{"text":"Written_Warning","label":{"en":"Written Warning"}}]},{"name":"untitled2","data":"fields","type":"grid","fields":[{"name":"Name_of_Supervisor","data":"text","type":"text","text":"Chaya Frimerman"},{"name":"Date_Time_of_Communication","data":"text","type":"text","text":"06/05/2026 10:09:00 AM"},{"name":"Employee_Name","data":"text","type":"text","text":"Chaya Frimerman"}]},{"name":"Reason_for_Action","data":"text","type":"text","text":"thsrhtsh"},{"name":"Attachment","data":"text","type":"text","text":"https://devstoragedocument.blob.core.windows.net/upload/pdf/powerbi_17806686290547n3F.pdf"}],"key":"ag9zfm15ZG9mb3Jtcy1ocmRyPQsSMGFnOXpmbTE1Wkc5bWIzSnRjeTFvY21SeUVRc1NCRVp2Y20wWWdJQ1NrYmE5MHdnTRiAgJKxr-GxCgw","id":"opusop$$06052026140855$$Published&&2","index":2,"name":"2","type":"submission","formName":"Employee_Occurance_Test5","formVersion":1.0,"createTime":"2026-06-05T14:10:30.408Z","receiveTime":"2026-06-05T14:10:30.178Z","deviceKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFwsSCk1vYmlsZVVuaXQYgICS0fzUgAgM","status":"Completed","statusTime":"2026-06-05T14:10:30.408Z","timezone":"(UTC)-Universal Coordinated Time","offset":0,"formKey":"ag9zfm15ZG9mb3Jtcy1ocmRyEQsSBEZvcm0YgICSkba90wgM","projectKey":"ag9zfm15ZG9mb3Jtcy1ocmRyFAsSB1Byb2plY3QYgIDE0O_qzgoM"}}
+2026-06-05 10:10:21,052 INFO Photo email sent with 1 attachment(s)
+2026-06-05 10:10:21,053 INFO 127.0.0.1 - - [05/Jun/2026 10:10:21] "POST /api/submit HTTP/1.1" 200 -

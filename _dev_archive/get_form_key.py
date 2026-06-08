@@ -8,7 +8,8 @@ import sys, os
 sys.path.insert(0, os.path.dirname(__file__))
 
 import requests
-from credentials import get_cached_token, PROJECT_KEY, DOFORMS_BASE
+from credentials import get_cached_token,  DOFORMS_BASE
+from utils import PROJECT_KEY
 
 token = get_cached_token()
 print(f"Token: {token[:20]}...")

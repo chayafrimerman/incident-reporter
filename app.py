@@ -20,7 +20,11 @@ from utils import (ANTHROPIC_API_KEY,
     emp_phase4_check, emp_finalize,
     EMPTY_STATE_EMPLOYEE, FORM_KEY, PROJECT_KEY, EMPLOYEE_FORM_KEY
 )
-from credentials import get_cached_token, get_db_conn,  DOFORMS_BASE, IMAP_EMAIL, IMAP_APP_PASSWORD
+from credentials import get_cached_token, get_db_conn, DOFORMS_BASE, EMAIL, APP_PASSWORD
+from io import BytesIO
+import base64 as b64mod
+from email.mime.application import MIMEApplication
+from pdf_generator import generate_incident_pdf, generate_employee_occurrence_pdf
 
 
 # ── Email / SMTP config ─────────────────────────────────────────
@@ -29,9 +33,9 @@ from credentials import get_cached_token, get_db_conn,  DOFORMS_BASE, IMAP_EMAIL
 # AFTER
 SMTP_HOST     = "smtp.gmail.com"
 SMTP_PORT     = 587
-SMTP_USER     = IMAP_EMAIL       
-SMTP_PASSWORD = IMAP_APP_PASSWORD 
-SMTP_FROM     = IMAP_EMAIL
+SMTP_USER     = EMAIL
+SMTP_PASSWORD = APP_PASSWORD
+SMTP_FROM     = EMAIL
 
 # How long (seconds) an OTP stays valid
 OTP_TTL = 600   # 10 minutes
@@ -611,7 +615,19 @@ def reset_session():
     return resp
 
 
-# ── Submit to doForms ────────────────────────────────────────────
+# ── Email recipients preview ─────────────────────────────────────
+@app.route("/api/email-recipients", methods=["GET"])
+def email_recipients():
+    report_type = request.args.get("report_type", "incident")
+    supervisor  = request.args.get("supervisor", "")
+    if report_type == "employee_occurrence":
+        recipients = _employee_occurrence_recipients()
+    else:
+        recipients = _incident_recipients(supervisor)
+    return jsonify({"recipients": recipients, "testing": TESTING_MODE})
+
+
+# ── Submit ────────────────────────────────────────────────────────
 @app.route("/api/submit", methods=["POST"])
 def submit():
     data = request.json
@@ -620,265 +636,337 @@ def submit():
     if data.get("report_type") == "employee_occurrence":
         return _submit_employee_occurrence(data)
 
+    log.info("Incident submit — keys: %s", list(data.keys()))
+
+    sid = get_session_id()
+
+    # 1 — Generate PDF + upload to get link
+    pdf_link = ""
+    pdf_bytes = None
     try:
-        token = get_cached_token()
+        incident_type = data.get("Incident_Type", "")
+        address       = data.get("Job_Address", "")
+        ts_label      = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename      = f"Incident_Report_{ts_label}.pdf"
+        pdf_bytes     = generate_incident_pdf(data)
+        pdf_link      = _upload_pdf_report(pdf_bytes, filename)
+        log.info("Incident PDF uploaded: %s", pdf_link)
     except Exception as e:
-        return jsonify({"error": f"Token error: {e}"}), 500
+        log.error("Failed to generate/upload incident PDF: %s", e)
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
+    # 2 — Save to SQL Server (with link)
+    _save_incident_to_db(data, sid, link=pdf_link)
 
-    # Determine Report_Type from Incident_Type (fallback if AI didn't set it)
-    _incident_type = data.get("Incident_Type", "")
-    _jobsite_types = {"Trespassing / Unathorized access", "Disturbance", "Missing / Stolen Package", "Resident Issue"}
-    _emergency_types = {"Criminal Activity", "Violence and Altercations", "Emergencies"}
-    if data.get("Report_Type"):
-        report_type = data["Report_Type"]
-    elif _incident_type in _jobsite_types:
-        report_type = "Jobsite Incident Report"
-    elif _incident_type in _emergency_types:
-        report_type = "Emergency Incident Report"
-    else:
-        report_type = ""
+    # 3 — Email PDF
+    try:
+        if pdf_bytes:
+            incident_type = data.get("Incident_Type", "")
+            address       = data.get("Job_Address", "")
+            ts_label      = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename      = f"Incident_Report_{ts_label}.pdf"
+            subject  = f"[Incident Report] {incident_type} — {address}"
+            link_line = f'<p><a href="{pdf_link}">View report online</a></p>' if pdf_link else ""
+            html_intro = f"""
+<html><body style="font-family:sans-serif;font-size:14px;color:#222;line-height:1.6;">
+  <div style="max-width:680px;margin:0 auto;border:1px solid #ddd;border-radius:8px;padding:24px;">
+    <div style="background:#00D2CB;color:#fff;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
+      <strong>Opus Operations — Incident Report</strong>
+    </div>
+    <p>An Incident Report has been submitted. The full report is attached as a PDF.</p>
+    <p style="color:#555;font-size:13px;">
+      <b>Incident Type:</b> {incident_type}<br>
+      <b>Address:</b> {address}<br>
+      <b>Employee:</b> {data.get('Employee_name','')}<br>
+      <b>Supervisor:</b> {data.get('Name_Of_Supervisor','')}
+    </p>
+    {link_line}
+    <hr style="border:none;border-top:1px solid #eee;margin-top:20px;">
+    <p style="color:#aaa;font-size:11px;">Submitted via Opus Operations Incident Reporter</p>
+  </div>
+</body></html>"""
+            extras     = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            recipients = _incident_recipients(data.get("Name_Of_Supervisor", "")) + extras
+            _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, filename)
+    except Exception as e:
+        log.error("Failed to email incident PDF: %s", e)
 
-    # Follow_Up_Actions_Needed: AI-generated next steps + any manual additions
-    follow_up_parts = [
-        data.get("Follow_Up_Actions_Needed", ""),
-        data.get("Additional_Information", ""),
-        data.get("Previous_Undocumented_Incidents", ""),
-    ]
-    follow_up = "\n\n".join(p for p in follow_up_parts if p.strip())
+    # 3 — Clear session
+    if sid in _sessions:
+        del _sessions[sid]
 
-    # Build Email_To recipient list
-    _supervisor = data.get("Name_Of_Supervisor", "").strip()
-    # _email_list = [
-    #     "hr@opusoperations.com",
-    #     "reports@opusoperations.com",
-    #     "aharon@opusoperations.com",
-    #     "thomas@opusoperations.com",
-    #     "jasonw@opusoperations.com",
-    # ]
-    _email_list = [
-        "chayaf@opusoperations.com",
-    ]
-    if _supervisor == "Stacy Nunez":
-        # _email_list.append("stacyn@opusoperations.com")
-        _email_list.append("mushkafrimsch@gmail.com")
-    # elif _supervisor == "Jesus Ramos":
-    #     _email_list.extend(["agusting@opusoperations.com", "yidi@opusoperations.com"])
-    user_email = ";".join(_email_list)
+    return jsonify({"success": True})
 
-    def fmt_dt(value):
-        """Format a datetime-local string as MM/DD/YYYY HH:MM:SS AM/PM."""
-        if not value:
-            return ""
-        clean = value.strip().replace("Z", "").split(".")[0].replace(" ", "T")
-        if len(clean) == 16:
-            clean += ":00"
-        try:
-            return datetime.fromisoformat(clean).strftime("%m/%d/%Y %I:%M:%S %p")
-        except Exception:
-            return value
 
-    print("Incoming data keys:", list(data.keys()))
-    print("Date_Time_Of_Incident:", data.get("Date_Time_Of_Incident"))
-    print("Date_Time_Of_Report:", data.get("Date_Time_Of_Report"))
+# ── Email recipient logic ────────────────────────────────────────
+# Set to True to send to full recipient lists; False = test mode (chayaf only)
+TESTING_MODE = True
 
-    # Build nested payload mirroring the form's grid/section structure:
-    # Top-level: Email_To
-    # Section "untitled2": Jobsite_Address, Customer_Name, Date_Time_of_Report, Name_of_Supervisor
-    # Section "Incident_Information": Employee_Name, Report_Type, Incident_Type,
-    #   Unit_Number_or_Location, What_Happened, Who_Was_Notified,
-    #   Date_Time_of_Incident, How_Was_it_Resolved, Follow_Up_Actions_Needed
+_INCIDENT_BASE = [
+    "hr@opusoperations.com",
+    "reports@opusoperations.com",
+    "aharon@opusoperations.com",
+    "thomas@opusoperations.com",
+    "jasonw@opusoperations.com",
+]
+_SUPERVISOR_EXTRAS = {
+    "stacy nunez":  ["stacyn@opusoperations.com"],
+    "jesus ramos":   ["agusting@opusoperations.com", "yidi@opusoperations.com"],
+}
+_EMPLOYEE_OCCURRENCE_BASE = [
+    "hr@opusoperations.com",
+    "reports@opusoperations.com",
+    "susank@opusoperations.com",
+    "aharon@opusoperations.com",
+    "thomas@opusoperations.com",
+    "jasonw@opusoperations.com",
+    "carlosc@opusoperations.com",
+]
 
-    def tf(value):
-        """Return a text field dict, or None if empty."""
-        return {"text": value} if value else None
+def _incident_recipients(supervisor: str) -> list:
+    recipients = list(_INCIDENT_BASE)
+    extras = _SUPERVISOR_EXTRAS.get(supervisor.strip().lower(), [])
+    recipients.extend(extras)
+    if TESTING_MODE:
+        return ["chayaf@opusoperations.com"]
+    return recipients
 
-    section_untitled2 = []
-    for fname, val in [
-        ("Jobsite_Address",      data.get("Job_Address", "")),
-        ("Customer_Name",        data.get("Customer_Name", "")),
-        ("Date_Time_of_Report",  fmt_dt(data.get("Date_Time_Of_Report", ""))),
-        ("Name_of_Supervisor",   data.get("Name_Of_Supervisor", "")),
-    ]:
-        if val:
-            section_untitled2.append({"name": fname, "text": val})
+def _employee_occurrence_recipients() -> list:
+    if TESTING_MODE:
+        return ["chayaf@opusoperations.com"]
+    return list(_EMPLOYEE_OCCURRENCE_BASE)
 
-    section_incident = []
-    for fname, val in [
-        ("Employee_Name",            data.get("Employee_name", "")),
-        ("Report_Type",              report_type),
-        ("Incident_Type",            data.get("Incident_Type", "")),
-        ("Unit_Number_or_Location",  data.get("Unit_Number_Or_Location", "")),
-        ("What_Happened",            data.get("Describe_What_Happened", "")),
-        ("Who_Was_Notified",         data.get("Who_Was_Notified", "")),
-        ("Date_Time_of_Incident",    fmt_dt(data.get("Date_Time_Of_Incident", ""))),
-        ("How_Was_it_Resolved",      data.get("How_Was_It_Resolved", "")),
-        ("Follow_Up_Actions_Needed", follow_up),
-    ]:
-        if val:
-            section_incident.append({"name": fname, "text": val})
 
-    fields = []
-    if section_untitled2:
-        fields.append({"name": "untitled2", "fields": section_untitled2})
-    if section_incident:
-        fields.append({"name": "Incident_Information", "fields": section_incident})
-    payload = {
-        "formKey": FORM_KEY,
-        "projectKey": PROJECT_KEY,
-        "fields": fields,
-    }
-    print("Submitting payload:", json.dumps(payload, indent=2))
-    r = requests.post(f"{DOFORMS_BASE}/api/v2/submissions", headers=headers, json=payload)
-    print("doForms submit status:", r.status_code)
-    print("doForms submit response:", r.text)
+# ── DB / PDF / Email helpers ─────────────────────────────────────
 
-    if r.status_code in (200, 201):
-        sid = get_session_id()
-        if sid in _sessions:
-            del _sessions[sid]
-        return jsonify({"success": True, "response": r.json()})
-    else:
-        return jsonify({"success": False, "error": r.text}), r.status_code
+def _parse_dt(v):
+    """Parse a datetime-local string to a datetime object, or None."""
+    if not v:
+        return None
+    clean = v.strip().replace("Z", "").split(".")[0].replace(" ", "T")
+    if len(clean) == 16:
+        clean += ":00"
+    try:
+        return datetime.fromisoformat(clean)
+    except Exception:
+        return None
+
+
+def _save_incident_to_db(data, sid="", link=""):
+    """Insert an incident report row into SQL Server."""
+    try:
+        conn   = get_db_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO dbo.incident_reports2 (
+                session_id, employee_name, supervisor_name, job_address, customer_name,
+                report_type, incident_type, unit_location,
+                date_time_incident, date_time_report,
+                what_happened, who_notified, how_resolved,
+                follow_up_actions, additional_info, previous_incidents, link
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            sid,
+            data.get("Employee_name", ""),
+            data.get("Name_Of_Supervisor", ""),
+            data.get("Job_Address", ""),
+            data.get("Customer_Name", ""),
+            data.get("Report_Type", ""),
+            data.get("Incident_Type", ""),
+            data.get("Unit_Number_Or_Location", ""),
+            _parse_dt(data.get("Date_Time_Of_Incident", "")),
+            _parse_dt(data.get("Date_Time_Of_Report", "")),
+            data.get("Describe_What_Happened", ""),
+            data.get("Who_Was_Notified", ""),
+            data.get("How_Was_It_Resolved", ""),
+            data.get("Follow_Up_Actions_Needed", ""),
+            data.get("Additional_Information", ""),
+            data.get("Previous_Undocumented_Incidents", ""),
+            link,
+        )
+        conn.commit()
+        conn.close()
+        log.info("Incident report saved to DB (session=%s)", sid)
+    except Exception as e:
+        log.error("Failed to save incident to DB: %s", e)
+
+
+def _save_employee_occurrence_to_db(data, sid="", photo_count=0, link=""):
+    """Insert an employee occurrence report row into SQL Server."""
+    action_taken = data.get("Action_Taken", [])
+    if isinstance(action_taken, str):
+        action_taken = [action_taken] if action_taken else []
+    action_str = ", ".join(action_taken)
+
+    try:
+        conn   = get_db_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            INSERT INTO dbo.employee_occurrence_reports (
+                session_id, employee_name, employee_title, supervisor_name,
+                incident_type, date_time_incident, date_time_report,
+                reason_for_action, action_taken,
+                conversation_summary, employee_reaction, photo_count, link
+            ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+            """,
+            sid,
+            data.get("Employee_name", ""),
+            data.get("Employee_Title", ""),
+            data.get("Name_Of_Supervisor", ""),
+            data.get("Incident_Type", ""),
+            _parse_dt(data.get("Date_Time_Of_Incident", "")),
+            _parse_dt(data.get("Date_Time_Of_Report", "")),
+            data.get("Reason_for_Action", ""),
+            action_str,
+            data.get("Conversation_Summary_and_Expec", ""),
+            data.get("Employee_Reaction", ""),
+            photo_count,
+            link,
+        )
+        conn.commit()
+        conn.close()
+        log.info("Employee occurrence report saved to DB (session=%s)", sid)
+    except Exception as e:
+        log.error("Failed to save employee occurrence to DB: %s", e)
+
+
+def _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, pdf_filename):
+    """Send an email with a PDF report attached."""
+    if isinstance(recipients, str):
+        recipients = [r.strip() for r in recipients.replace(",", ";").split(";") if r.strip()]
+
+    msg = MIMEMultipart("mixed")
+    msg["Subject"] = subject
+    msg["From"]    = SMTP_FROM
+    msg["To"]      = ", ".join(recipients)
+
+    # Body
+    alt = MIMEMultipart("alternative")
+    alt.attach(MIMEText("Please see the attached PDF report.", "plain"))
+    alt.attach(MIMEText(html_intro, "html"))
+    msg.attach(alt)
+
+    # PDF attachment
+    pdf_part = MIMEApplication(pdf_bytes, _subtype="pdf")
+    pdf_part.add_header("Content-Disposition", "attachment", filename=pdf_filename)
+    msg.attach(pdf_part)
+
+    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
+        server.ehlo()
+        server.starttls()
+        server.login(SMTP_USER, SMTP_PASSWORD)
+        server.sendmail(SMTP_FROM, recipients, msg.as_string())
+
+    log.info("PDF report emailed to %s (%s)", recipients, pdf_filename)
 
 
 # ── Employee Occurrence submit helper ────────────────────────────
 def _submit_employee_occurrence(data):
-    """Submit an Employee Occurrence Report to doForms (Employee_Occurance_Test form).
+    """Save an Employee Occurrence Report to SQL, generate a PDF, and email it."""
+    photos    = data.get("photos", [])
+    sid       = get_session_id()
 
-    Form structure (from get_employee_form.py):
-      Section "untitled2": Employee_Name, Employee_Title, Name_of_Supervisor,
-                           Incident_Type, Date_Time_of_Incident, Date_Time_of_Communication
-      Top-level: Reason_for_Action, Action_Taken (strings), Conversation_Summary_and_Expec,
-                 Employee_s_Reaction, Email_To
-    """
+    log.info("Employee occurrence submit — employee=%s photos=%d",
+             data.get("Employee_name", ""), len(photos))
+
+    # 1 — Generate PDF + upload to get link
+    pdf_link = ""
+    pdf_bytes = None
+    employee   = data.get("Employee_name", "")
+    action_raw = data.get("Action_Taken", [])
+    if isinstance(action_raw, str):
+        action_raw = [action_raw] if action_raw else []
+    action_str = ", ".join(action_raw)
     try:
-        token = get_cached_token()
+        ts_label  = datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename  = f"Employee_Occurrence_{ts_label}.pdf"
+        pdf_bytes = generate_employee_occurrence_pdf(data)
+        pdf_link  = _upload_pdf_report(pdf_bytes, filename)
+        log.info("Employee occurrence PDF uploaded: %s", pdf_link)
     except Exception as e:
-        return jsonify({"error": f"Token error: {e}"}), 500
+        log.error("Failed to generate/upload employee occurrence PDF: %s", e)
 
-    headers = {
-        "Authorization": f"Bearer {token}",
-        "Content-Type": "application/json",
-    }
+    # 2 — Save to SQL Server (with link)
+    _save_employee_occurrence_to_db(data, sid, len(photos), link=pdf_link)
 
-    def fmt_dt(value):
-        if not value:
-            return ""
-        clean = value.strip().replace("Z", "").split(".")[0].replace(" ", "T")
-        if len(clean) == 16:
-            clean += ":00"
-        try:
-            return datetime.fromisoformat(clean).strftime("%m/%d/%Y %I:%M:%S %p")
-        except Exception:
-            return value
+    # 3 — Email PDF
+    try:
+        if pdf_bytes:
+            ts_label   = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename   = f"Employee_Occurrence_{ts_label}.pdf"
+            subject    = f"[Employee Occurrence] {employee} — {action_str}"
+            link_line  = f'<p><a href="{pdf_link}">View report online</a></p>' if pdf_link else ""
+            html_intro = f"""
+<html><body style="font-family:sans-serif;font-size:14px;color:#222;line-height:1.6;">
+  <div style="max-width:680px;margin:0 auto;border:1px solid #ddd;border-radius:8px;padding:24px;">
+    <div style="background:#00D2CB;color:#fff;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
+      <strong>Opus Operations — Employee Occurrence Report</strong>
+    </div>
+    <p>An Employee Occurrence Report has been submitted. The full report is attached as a PDF.</p>
+    <p style="color:#555;font-size:13px;">
+      <b>Employee:</b> {employee}<br>
+      <b>Supervisor:</b> {data.get('Name_Of_Supervisor','')}<br>
+      <b>Action Taken:</b> {action_str}<br>
+      <b>Incident Type:</b> {data.get('Incident_Type','')}
+    </p>
+    {'<p style="font-size:13px;"><b>' + str(len(photos)) + ' photo(s) embedded in the attached PDF.</b></p>' if photos else ''}
+    {link_line}
+    <hr style="border:none;border-top:1px solid #eee;margin-top:20px;">
+    <p style="color:#aaa;font-size:11px;">Submitted via Opus Operations Incident Reporter</p>
+  </div>
+</body></html>"""
+            extras     = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            recipients = _employee_occurrence_recipients() + extras
+            _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, filename)
+    except Exception as e:
+        log.error("Failed to email employee occurrence PDF: %s", e)
 
-    # ── Section "untitled2" ──────────────────────────────────────
-    section_untitled2 = []
-    for fname, val in [
-        ("Employee_Name",              data.get("Employee_name", "")),
-        ("Employee_Title",             data.get("Employee_Title", "")),
-        ("Name_of_Supervisor",         data.get("Name_Of_Supervisor", "")),
-        ("Incident_Type",              data.get("Incident_Type", "")),
-        ("Date_Time_of_Incident",      fmt_dt(data.get("Date_Time_Of_Incident", ""))),
-        ("Date_Time_of_Communication", fmt_dt(data.get("Date_Time_Of_Report", ""))),
-    ]:
-        if val:
-            section_untitled2.append({"name": fname, "text": val})
+    # 3 — Clear session
+    if sid in _sessions:
+        del _sessions[sid]
 
-    # ── Top-level fields ─────────────────────────────────────────
-    fields = []
-    if section_untitled2:
-        fields.append({"name": "untitled2", "fields": section_untitled2})
-
-    if data.get("Reason_for_Action"):
-        fields.append({"name": "Reason_for_Action", "text": data["Reason_for_Action"]})
-
-    # Action_Taken is a "strings" (multi-select) field in doForms — value is a list from the frontend
-    action_taken = data.get("Action_Taken", [])
-    if isinstance(action_taken, str):
-        action_taken = [action_taken] if action_taken else []
-    if action_taken:
-        fields.append({"name": "Action_Taken", "strings": action_taken})
-
-    if data.get("Conversation_Summary_and_Expec"):
-        fields.append({"name": "Conversation_Summary_and_Expec", "text": data["Conversation_Summary_and_Expec"]})
-
-    if data.get("Employee_Reaction"):
-        fields.append({"name": "Employee_s_Reaction", "text": data["Employee_Reaction"]})
-
-    # Photos — upload each to Opus CDN, put links in the Attachments text field
-    photos = data.get("photos", [])
-    if photos:
-        links = []
-        for i, photo in enumerate(photos):
-            try:
-                url = _upload_photo(photo)
-                links.append(url)
-                log.info("Photo %d uploaded: %s", i + 1, url)
-            except Exception as e:
-                log.warning("Failed to upload photo %d (%s): %s", i + 1, photo.get("filename"), e)
-        if links:
-            fields.append({"name": "Attachment", "text": "\n".join(links)})
-
-    # Email recipients
-    _email_list = ["chayaf@opusoperations.com"]
-    fields.append({"name": "Email_To", "text": ";".join(_email_list)})
-
-    payload = {
-        "formKey":    EMPLOYEE_FORM_KEY,
-        "projectKey": PROJECT_KEY,
-        "fields":     fields,
-    }
-
-    # Strip base64 photo data from log to keep it readable
-    log_payload = json.loads(json.dumps(payload))
-    for f in log_payload.get("fields", []):
-        if f.get("name") == "Attachments" and isinstance(f.get("blob"), dict):
-            b64 = f["blob"].get("data", "")
-            f["blob"]["data"] = f"<base64 {len(b64)} chars>"
-    log.info("EMPLOYEE OCCURRENCE SUBMIT payload: %s", json.dumps(log_payload, indent=2))
-    r = requests.post(f"{DOFORMS_BASE}/api/v2/submissions", headers=headers, json=payload)
-    log.info("EMPLOYEE OCCURRENCE SUBMIT status: %s", r.status_code)
-    log.info("EMPLOYEE OCCURRENCE SUBMIT response: %s", r.text)
-
-    if r.status_code in (200, 201):
-        sid = get_session_id()
-        if sid in _sessions:
-            del _sessions[sid]
-        # Email photos if any were uploaded (doForms API doesn't accept inline blobs)
-        photos = data.get("photos", [])
-        if photos:
-            try:
-                _send_employee_photos_email(_email_list, data, photos)
-                log.info("Photo email sent with %d attachment(s)", len(photos))
-            except Exception as e:
-                log.warning("Failed to send photo email: %s", e)
-        return jsonify({"success": True, "response": r.json()})
-    else:
-        return jsonify({"success": False, "error": r.text}), r.status_code
+    return jsonify({"success": True})
 
 
-def _upload_photo(photo, base_url="https://reports.opusoperations.com"):
-    """Upload a base64-encoded photo to the Opus upload API and return a proxy URL."""
-    from urllib.parse import quote
-    import base64 as b64mod
-    img_bytes = b64mod.b64decode(photo["data"])
-    filename  = photo.get("filename", "photo.jpg")
-    ctype     = photo.get("content_type", "image/jpeg")
+def _upload_pdf_report(pdf_bytes, filename):
+    """Upload a PDF to the Opus file server and return the public URL."""
     files = {
-        "file": (filename, img_bytes, ctype),
-        "type": (None, "image"),
+        "file": (filename, pdf_bytes, "application/pdf"),
+        "type": (None, "pdf"),
     }
     r = requests.post("https://dev.opusoperations.com/upload/upload-file", files=files)
     r.raise_for_status()
-    azure_url = r.text.strip()
-    # Return a proxy URL so the image opens inline in the browser instead of downloading
-    return f"{base_url}/api/view-photo?url={quote(azure_url, safe='')}"
+    return r.text.strip()
+
+
+def _upload_photo(photo, base_url="https://reports.opusoperations.com"):
+    # Decode image bytes
+    img_bytes = b64mod.b64decode(photo["data"])
+    img_buffer = BytesIO(img_bytes)
+
+    # Get image dimensions
+    img_reader = ImageReader(img_buffer)
+    img_w, img_h = img_reader.getSize()
+
+    # Create a PDF sized to the image
+    pdf_buffer = BytesIO()
+    c = canvas.Canvas(pdf_buffer, pagesize=(img_w, img_h))
+    img_buffer.seek(0)
+    c.drawImage(ImageReader(img_buffer), 0, 0, width=img_w, height=img_h)
+    c.save()
+    pdf_buffer.seek(0)
+    pdf_bytes = pdf_buffer.read()
+
+    # Upload as PDF using the working path
+    filename = photo.get("filename", "photo").rsplit(".", 1)[0] + ".pdf"
+    files = {
+        "file": (filename, pdf_bytes, "application/pdf"),
+        "type": (None, "pdf"),
+    }
+    r = requests.post("https://dev.opusoperations.com/upload/upload-file", files=files)
+    r.raise_for_status()
+    return r.text.strip()
 
 
 def _send_employee_photos_email(recipients, data, photos):

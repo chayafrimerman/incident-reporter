@@ -150,6 +150,21 @@
     accent-color: var(--accent); cursor: pointer; flex-shrink: 0;
   }
 
+  /* Recipients panel */
+  .recipients-panel { padding: 14px 24px 0; background: var(--surface); border-top: 1px solid var(--border); }
+  .recipients-label { font-size: 11px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .05em; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+  .recipients-label .testing-badge { background: #f59e0b; color: #fff; font-size: 10px; padding: 1px 6px; border-radius: 20px; text-transform: none; letter-spacing: 0; }
+  .recipients-chips { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; min-height: 26px; }
+  .chip { display: inline-flex; align-items: center; gap: 4px; background: #e8f7f7; color: #00857f; border: 1px solid #b2e8e6; border-radius: 20px; padding: 3px 10px; font-size: 12px; }
+  .chip.extra { background: #f0f4ff; color: #3b5bdb; border-color: #bac8ff; }
+  .chip .chip-remove { background: none; border: none; color: inherit; cursor: pointer; padding: 0; font-size: 13px; line-height: 1; opacity: .6; }
+  .chip .chip-remove:hover { opacity: 1; }
+  .add-email-row { display: flex; gap: 6px; margin-bottom: 12px; }
+  .add-email-input { flex: 1; border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; font-size: 13px; font-family: 'DM Sans', sans-serif; color: var(--text); background: var(--bg); }
+  .add-email-input:focus { outline: none; border-color: #00D2CB; }
+  .add-email-btn { background: #00D2CB; color: #fff; border: none; border-radius: 8px; padding: 6px 14px; font-size: 13px; font-family: 'DM Sans', sans-serif; cursor: pointer; white-space: nowrap; }
+  .add-email-btn:hover { background: #00b5af; }
+
   /* Footer */
   .form-footer { padding: 16px 24px; border-top: 1px solid var(--border); background: var(--surface); display: flex; gap: 10px; align-items: center; }
   .submit-btn { flex: 1; background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 13px 20px; font-family: 'DM Sans', sans-serif; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .2s,transform .1s; display: flex; align-items: center; justify-content: center; gap: 8px; }
@@ -663,10 +678,22 @@
 
     </div>
 
+    <div class="recipients-panel" id="recipientsPanel" style="display:none">
+      <div class="recipients-label">
+        Will be sent to
+        <span class="testing-badge" id="testingBadge" style="display:none">Testing mode — only you</span>
+      </div>
+      <div class="recipients-chips" id="recipientsChips"></div>
+      <div class="add-email-row">
+        <input class="add-email-input" id="addEmailInput" type="email" placeholder="Add another email address…" onkeydown="if(event.key==='Enter'){event.preventDefault();addExtraEmail();}">
+        <button class="add-email-btn" onclick="addExtraEmail()">+ Add</button>
+      </div>
+    </div>
+
     <div class="form-footer" id="formFooter" style="display:none">
       <button class="reset-btn" onclick="resetForm()">↺ Reset</button>
       <button class="submit-btn" id="submitBtn" onclick="submitForm(event)">
-        <span>Submit to doForms</span> →
+        <span>Submit Report</span> →
       </button>
     </div>
   </div>
@@ -677,6 +704,64 @@
   let conversationHistory = [];
   let formReady = false;
   let currentReportType = "incident";  // "incident" | "employee_occurrence"
+  let extraRecipients = [];  // user-added emails
+
+  // ── Recipients panel ─────────────────────────────────────────
+  async function loadRecipients() {
+    const supervisor = currentReportType === "incident"
+      ? (document.getElementById("sel_supervisor")?.value || "")
+      : (document.getElementById("emp_sel_supervisor")?.value || "");
+    const url = `${API_BASE}/api/email-recipients?report_type=${currentReportType}&supervisor=${encodeURIComponent(supervisor)}`;
+    try {
+      const res  = await fetch(url);
+      const data = await res.json();
+      renderRecipientChips(data.recipients, data.testing);
+    } catch(e) { /* silent */ }
+  }
+
+  function renderRecipientChips(recipients, testing) {
+    const container = document.getElementById("recipientsChips");
+    container.innerHTML = "";
+    recipients.forEach(email => {
+      const chip = document.createElement("span");
+      chip.className = "chip";
+      chip.textContent = email;
+      container.appendChild(chip);
+    });
+    extraRecipients.forEach((email, i) => {
+      const chip = document.createElement("span");
+      chip.className = "chip extra";
+      chip.innerHTML = `${email} <button class="chip-remove" onclick="removeExtra(${i})" title="Remove">×</button>`;
+      container.appendChild(chip);
+    });
+    document.getElementById("testingBadge").style.display = testing ? "" : "none";
+  }
+
+  function addExtraEmail() {
+    const input = document.getElementById("addEmailInput");
+    const email = input.value.trim().toLowerCase();
+    if (!email) return;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { alert("Please enter a valid email address."); return; }
+    if (extraRecipients.includes(email)) { input.value = ""; return; }
+    extraRecipients.push(email);
+    input.value = "";
+    loadRecipients();
+  }
+
+  function removeExtra(index) {
+    extraRecipients.splice(index, 1);
+    loadRecipients();
+  }
+
+  function showRecipientsPanel() {
+    document.getElementById("recipientsPanel").style.display = "";
+    loadRecipients();
+  }
+
+  function hideRecipientsPanel() {
+    document.getElementById("recipientsPanel").style.display = "none";
+    extraRecipients = [];
+  }
 
   function nowLocal() {
     const d = new Date();
@@ -1052,6 +1137,7 @@
     formReady = true;
     document.getElementById("formPlaceholder").style.display = "none";
     document.getElementById("formFooter").style.display = "flex";
+    showRecipientsPanel();
     document.getElementById("progressFill").style.width = "100%";
     document.getElementById("userInput").placeholder = "Any feedback on how the AI did? (optional)";
   }
@@ -1211,6 +1297,7 @@
     data.Customer_Name      = customer;
     data.Employee_name      = employee;
     data.Name_Of_Supervisor = supervisor;
+    data.extra_recipients   = [...extraRecipients];
 
     btn.disabled = true;
     btn.innerHTML = "<span>Submitting...</span>";
@@ -1225,10 +1312,11 @@
       if (result.success) {
         document.getElementById("incidentForm").style.display = "none";
         document.getElementById("formFooter").style.display = "none";
+        hideRecipientsPanel();
         document.getElementById("successOverlay").classList.add("show");
       } else {
         btn.disabled = false;
-        btn.innerHTML = "<span>Submit to doForms</span> →";
+        btn.innerHTML = "<span>Submit Report</span> →";
         alert("Submission failed: " + (result.error || "Unknown error"));
       }
     } catch(err) {
@@ -1269,6 +1357,7 @@
     data.Employee_name      = employee;
     data.Name_Of_Supervisor = supervisor;
     data.report_type        = "employee_occurrence";
+    data.extra_recipients   = [...extraRecipients];
 
     btn.disabled = true;
     btn.innerHTML = "<span>Submitting...</span>";
@@ -1283,10 +1372,11 @@
       if (result.success) {
         document.getElementById("employeeForm").style.display = "none";
         document.getElementById("formFooter").style.display = "none";
+        hideRecipientsPanel();
         document.getElementById("successOverlay").classList.add("show");
       } else {
         btn.disabled = false;
-        btn.innerHTML = "<span>Submit to doForms</span> →";
+        btn.innerHTML = "<span>Submit Report</span> →";
         alert("Submission failed: " + (result.error || "Unknown error"));
       }
     } catch(err) {
@@ -1299,6 +1389,7 @@
   // ── Reset ────────────────────────────────────────────────────
   function resetForm() {
     if (!confirm("Reset the form? AI-filled data will be cleared.")) return;
+    hideRecipientsPanel();
     if (currentReportType === "employee_occurrence") {
       document.getElementById("employeeForm").reset();
       document.getElementById("emp_report_dt").value = nowLocal();
@@ -1492,6 +1583,7 @@
     document.getElementById('formFooter').style.display = 'flex';
     document.getElementById('progressFill').style.width = '100%';
     formReady = true;
+    showRecipientsPanel();
   }
 
   function enableManualIncident() {
@@ -1514,6 +1606,14 @@
     document.querySelectorAll('#employeeForm .ai-badge').forEach(el => el.remove());
     document.querySelectorAll('#employeeForm .ai-filled').forEach(el => el.classList.remove('ai-filled'));
   }
+
+  // Refresh recipient list whenever supervisor changes
+  document.getElementById("sel_supervisor").addEventListener("change", () => {
+    if (document.getElementById("recipientsPanel").style.display !== "none") loadRecipients();
+  });
+  document.getElementById("emp_sel_supervisor").addEventListener("change", () => {
+    if (document.getElementById("recipientsPanel").style.display !== "none") loadRecipients();
+  });
 </script>
 </body>
 </html>
