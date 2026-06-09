@@ -527,3 +527,54 @@ Return ONLY valid JSON — no markdown, no explanation:
 
     raw = call_claude(system, [{"role": "user", "content": "Generate the occurrence report."}], max_tokens=2048)
     return parse_json(raw)
+
+
+def review_and_patch(result, conversation):
+    """Post-generation pass: compare user turns to narrative fields and fill any gaps."""
+    is_employee = result.get("report_type") == "employee_occurrence"
+    if is_employee:
+        fields = {
+            "Reason_for_Action":              result.get("Reason_for_Action", ""),
+            "Conversation_Summary_and_Expec": result.get("Conversation_Summary_and_Expec", ""),
+            "Employee_Reaction":              result.get("Employee_Reaction", ""),
+        }
+    else:
+        fields = {
+            "Describe_What_Happened":           result.get("Describe_What_Happened", ""),
+            "Who_Was_Notified":                 result.get("Who_Was_Notified", ""),
+            "How_Was_It_Resolved":              result.get("How_Was_It_Resolved", ""),
+            "Next_Steps":                       result.get("Next_Steps", ""),
+            "Previous_Undocumented_Incidents":  result.get("Previous_Undocumented_Incidents", ""),
+        }
+
+    user_turns = [m["content"] for m in conversation if m["role"] == "user"]
+    user_text  = "\n\n".join(user_turns)
+    field_block = "\n".join(f'  "{k}": "{v}"' for k, v in fields.items())
+
+    system = f"""You are reviewing a completed incident report to ensure no detail mentioned by the user was dropped.
+
+USER'S ORIGINAL MESSAGES:
+{user_text}
+
+CURRENT REPORT FIELDS:
+{{{field_block}}}
+
+Instructions:
+- If any fact from the user's messages is missing from the report fields, add it in the correct field.
+- Do NOT invent or add details not mentioned by the user.
+- Do NOT remove or shorten existing content.
+- Return ONLY valid JSON with the same keys as the CURRENT REPORT FIELDS (only the fields listed above).
+  Example: {{"Reason_for_Action": "...", "Conversation_Summary_and_Expec": "...", "Employee_Reaction": "..."}}
+- If nothing needs to change, return the fields unchanged."""
+
+    try:
+        raw    = call_claude(system, [{"role": "user", "content": "Review and patch the report."}], max_tokens=2048)
+        patched = parse_json(raw)
+        if isinstance(patched, dict):
+            for key in fields:
+                if key in patched and patched[key] and patched[key] != fields[key]:
+                    result[key] = patched[key]
+    except Exception:
+        pass
+    return result
+

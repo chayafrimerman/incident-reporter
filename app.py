@@ -6,7 +6,7 @@ import uuid
 import json
 import hashlib
 import smtplib
-import random
+import secrets
 import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
@@ -18,13 +18,11 @@ from utils import (ANTHROPIC_API_KEY,
     EMPTY_STATE,
     emp_phase2_check, emp_phase2_update_state,
     emp_phase4_check, emp_finalize,
-    EMPTY_STATE_EMPLOYEE, FORM_KEY, PROJECT_KEY, EMPLOYEE_FORM_KEY
+    EMPTY_STATE_EMPLOYEE, review_and_patch,
 )
-from credentials import get_cached_token, get_db_conn, DOFORMS_BASE, EMAIL, APP_PASSWORD
-from io import BytesIO
-import base64 as b64mod
+from credentials import get_db_conn, EMAIL, APP_PASSWORD
 from email.mime.application import MIMEApplication
-from pdf_generator import generate_incident_pdf, generate_employee_occurrence_pdf
+from pdf_generator import generate_incident_pdf, generate_employee_occurrence_pdf, generate_termination_pdf
 
 
 # ── Email / SMTP config ─────────────────────────────────────────
@@ -185,7 +183,7 @@ def auth_request_otp():
         return jsonify({"error": "invalid_email"}), 403
 
     # Generate 6-digit OTP
-    otp = str(random.randint(100000, 999999))
+    otp = str(secrets.randbelow(900000) + 100000)
 
     # Store hashed OTP
     _otp_store[email] = {
@@ -224,7 +222,7 @@ def auth_verify_otp():
     if _hash(otp) != record["otp_hash"]:
         return jsonify({"error": "Incorrect code. Please try again."}), 400
 
-    # Valid — clean up
+    # Valid -- clean up
     del _otp_store[email]
 
     # Issue device token (long-lived)
@@ -259,7 +257,7 @@ def auth_check():
     if record and time.time() < record["expires"]:
         return jsonify({"ok": True, "email": record["email"]})
 
-    # Expired or missing — remove stale entry
+    # Expired or missing -- remove stale entry
     if token and token in _device_tokens:
         del _device_tokens[token]
         _save_tokens(_device_tokens)
@@ -280,7 +278,7 @@ def auth_logout():
 
 
 # ════════════════════════════════════════════════════════════════
-# EXISTING CODE — unchanged below this line
+# EXISTING CODE -- unchanged below this line
 # ════════════════════════════════════════════════════════════════
 
 def save_conversation(sid, state, conversation):
@@ -440,7 +438,7 @@ def chat():
 
         # multi_incident check only applies to incident reports
         if report_type == "incident" and multi and not state.get("multi_incident_handled"):
-            q = f"You mentioned a prior incident: \"{multi}\" — was a report already filed for that?"
+            q = f"You mentioned a prior incident: \"{multi}\" -- was a report already filed for that?"
             conversation.append({"role": "assistant", "content": q})
             sess["_pending_multi"] = multi
             reply = q
@@ -599,9 +597,10 @@ def _generate_report(sess):
         result = emp_finalize(sess["state"])
     else:
         result = finalize(sess["state"])
+    result = review_and_patch(result, sess.get("conversation", []))
     json_str = json.dumps(result, indent=2)
     save_conversation(sess.get("sid", "unknown"), sess["state"], sess["conversation"])
-    return f"Got it — let me write that up for you.\n\nSTORY_READY\n```json\n{json_str}\n```"
+    return f"Got it -- let me write that up for you.\n\nSTORY_READY\n```json\n{json_str}\n```"
 
 
 # ── Reset session ────────────────────────────────────────────────
@@ -636,11 +635,11 @@ def submit():
     if data.get("report_type") == "employee_occurrence":
         return _submit_employee_occurrence(data)
 
-    log.info("Incident submit — keys: %s", list(data.keys()))
+    log.info("Incident submit -- keys: %s", list(data.keys()))
 
     sid = get_session_id()
 
-    # 1 — Generate PDF + upload to get link
+    # 1 -- Generate PDF + upload to get link
     pdf_link = ""
     pdf_bytes = None
     try:
@@ -654,23 +653,23 @@ def submit():
     except Exception as e:
         log.error("Failed to generate/upload incident PDF: %s", e)
 
-    # 2 — Save to SQL Server (with link)
+    # 2 -- Save to SQL Server (with link)
     _save_incident_to_db(data, sid, link=pdf_link)
 
-    # 3 — Email PDF
+    # 3 -- Email PDF
     try:
         if pdf_bytes:
             incident_type = data.get("Incident_Type", "")
             address       = data.get("Job_Address", "")
             ts_label      = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename      = f"Incident_Report_{ts_label}.pdf"
-            subject  = f"[Incident Report] {incident_type} — {address}"
+            subject  = f"[Incident Report] {incident_type} -- {address}"
             link_line = f'<p><a href="{pdf_link}">View report online</a></p>' if pdf_link else ""
             html_intro = f"""
 <html><body style="font-family:sans-serif;font-size:14px;color:#222;line-height:1.6;">
   <div style="max-width:680px;margin:0 auto;border:1px solid #ddd;border-radius:8px;padding:24px;">
     <div style="background:#00D2CB;color:#fff;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
-      <strong>Opus Operations — Incident Report</strong>
+      <strong>Opus Operations -- Incident Report</strong>
     </div>
     <p>An Incident Report has been submitted. The full report is attached as a PDF.</p>
     <p style="color:#555;font-size:13px;">
@@ -690,7 +689,7 @@ def submit():
     except Exception as e:
         log.error("Failed to email incident PDF: %s", e)
 
-    # 3 — Clear session
+    # 3 -- Clear session
     if sid in _sessions:
         del _sessions[sid]
 
@@ -699,7 +698,7 @@ def submit():
 
 # ── Email recipient logic ────────────────────────────────────────
 # Set to True to send to full recipient lists; False = test mode (chayaf only)
-TESTING_MODE = True
+TESTING_MODE = False
 
 _INCIDENT_BASE = [
     "hr@opusoperations.com",
@@ -831,6 +830,43 @@ def _save_employee_occurrence_to_db(data, sid="", photo_count=0, link=""):
         log.error("Failed to save employee occurrence to DB: %s", e)
 
 
+
+def _save_termination_to_db(data, sid="", link=""):
+    """Save a termination form record to SQL Server."""
+    def _parse_dt(val):
+        if not val:
+            return None
+        for fmt in ("%Y-%m-%dT%H:%M:%S", "%Y-%m-%d %H:%M:%S", "%Y-%m-%d"):
+            try:
+                return datetime.strptime(val[:19], fmt)
+            except Exception:
+                pass
+        return None
+
+    try:
+        conn   = get_db_conn()
+        cursor = conn.cursor()
+        cursor.execute("""
+            INSERT INTO dbo.termination_reports
+                (session_id, employee_name, supervisor_name,
+                 termination_date, reason_for_action, work_division,
+                 uniform_return, link)
+            VALUES (?,?,?,?,?,?,?,?)
+        """,
+            sid,
+            data.get("Employee_name", data.get("Employee_Name", "")),
+            data.get("Name_Of_Supervisor", ""),
+            _parse_dt(data.get("Date_Time_Of_Incident", data.get("Date_Time_Of_Occurrence", ""))),
+            data.get("Reason_for_Action", ""),
+            data.get("Work_Division", ""),
+            data.get("Uniform_Return", ""),
+            link,
+        )
+        conn.commit()
+        conn.close()
+    except Exception as e:
+        log.error("Failed to save termination form to DB: %s", e)
+
 def _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, pdf_filename):
     """Send an email with a PDF report attached."""
     if isinstance(recipients, str):
@@ -867,10 +903,10 @@ def _submit_employee_occurrence(data):
     photos    = data.get("photos", [])
     sid       = get_session_id()
 
-    log.info("Employee occurrence submit — employee=%s photos=%d",
+    log.info("Employee occurrence submit -- employee=%s photos=%d",
              data.get("Employee_name", ""), len(photos))
 
-    # 1 — Generate PDF + upload to get link
+    # 1 -- Generate PDF + upload to get link
     pdf_link = ""
     pdf_bytes = None
     employee   = data.get("Employee_name", "")
@@ -887,21 +923,58 @@ def _submit_employee_occurrence(data):
     except Exception as e:
         log.error("Failed to generate/upload employee occurrence PDF: %s", e)
 
-    # 2 — Save to SQL Server (with link)
+    # 2 -- Save to SQL Server (with link)
     _save_employee_occurrence_to_db(data, sid, len(photos), link=pdf_link)
 
-    # 3 — Email PDF
+    # 2b -- If termination is checked, auto-generate termination form
+    is_termination = any("termination" in a.lower() for a in action_raw)
+    if is_termination:
+        try:
+            term_ts       = datetime.now().strftime("%Y%m%d_%H%M%S")
+            term_filename = f"Termination_Form_{term_ts}.pdf"
+            term_bytes    = generate_termination_pdf(data)
+            term_link     = _upload_pdf_report(term_bytes, term_filename)
+            _save_termination_to_db(data, sid, link=term_link)
+            term_subject  = f"[Termination] {employee}"
+            term_html     = f"""
+<html><body style="font-family:sans-serif;font-size:14px;color:#222;line-height:1.6;">
+  <div style="max-width:680px;margin:0 auto;border:1px solid #ddd;border-radius:8px;padding:24px;">
+    <div style="background:#c0392b;color:#fff;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
+      <strong>Opus Operations -- Termination Form</strong>
+    </div>
+    <p>A Termination Form has been automatically generated for the following employee.</p>
+    <p style="color:#555;font-size:13px;">
+      <b>Employee:</b> {data.get("Employee_name", data.get("Employee_Name",""))}<br>
+      <b>Supervisor:</b> {data.get("Name_Of_Supervisor","")}<br>
+      <b>Reason:</b> {data.get("Reason_for_Action","")}<br>
+      <b>Uniform Return:</b> {data.get("Uniform_Return","Not specified")}
+    </p>
+    {'<p><a href="' + term_link + '">View termination form online</a></p>' if term_link else ""}
+    <hr style="border:none;border-top:1px solid #eee;margin-top:20px;">
+    <p style="color:#aaa;font-size:11px;">Auto-generated via Opus Operations Incident Reporter</p>
+  </div>
+</body></html>"""
+            extras     = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            recipients = _employee_occurrence_recipients() + extras
+            _send_pdf_report_email(recipients, term_subject, term_html, term_bytes, term_filename)
+            log.info("Termination form sent for %s", employee)
+        except Exception as e:
+            log.error("Failed to generate/email termination form: %s", e)
+
+
+
+    # 3 -- Email PDF
     try:
         if pdf_bytes:
             ts_label   = datetime.now().strftime("%Y%m%d_%H%M%S")
             filename   = f"Employee_Occurrence_{ts_label}.pdf"
-            subject    = f"[Employee Occurrence] {employee} — {action_str}"
+            subject    = f"[Employee Occurrence] {employee} -- {action_str}"
             link_line  = f'<p><a href="{pdf_link}">View report online</a></p>' if pdf_link else ""
             html_intro = f"""
 <html><body style="font-family:sans-serif;font-size:14px;color:#222;line-height:1.6;">
   <div style="max-width:680px;margin:0 auto;border:1px solid #ddd;border-radius:8px;padding:24px;">
     <div style="background:#00D2CB;color:#fff;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
-      <strong>Opus Operations — Employee Occurrence Report</strong>
+      <strong>Opus Operations -- Employee Occurrence Report</strong>
     </div>
     <p>An Employee Occurrence Report has been submitted. The full report is attached as a PDF.</p>
     <p style="color:#555;font-size:13px;">
@@ -922,7 +995,7 @@ def _submit_employee_occurrence(data):
     except Exception as e:
         log.error("Failed to email employee occurrence PDF: %s", e)
 
-    # 3 — Clear session
+    # 3 -- Clear session
     if sid in _sessions:
         del _sessions[sid]
 
@@ -939,207 +1012,6 @@ def _upload_pdf_report(pdf_bytes, filename):
     r.raise_for_status()
     return r.text.strip()
 
-
-def _upload_photo(photo, base_url="https://reports.opusoperations.com"):
-    # Decode image bytes
-    img_bytes = b64mod.b64decode(photo["data"])
-    img_buffer = BytesIO(img_bytes)
-
-    # Get image dimensions
-    img_reader = ImageReader(img_buffer)
-    img_w, img_h = img_reader.getSize()
-
-    # Create a PDF sized to the image
-    pdf_buffer = BytesIO()
-    c = canvas.Canvas(pdf_buffer, pagesize=(img_w, img_h))
-    img_buffer.seek(0)
-    c.drawImage(ImageReader(img_buffer), 0, 0, width=img_w, height=img_h)
-    c.save()
-    pdf_buffer.seek(0)
-    pdf_bytes = pdf_buffer.read()
-
-    # Upload as PDF using the working path
-    filename = photo.get("filename", "photo").rsplit(".", 1)[0] + ".pdf"
-    files = {
-        "file": (filename, pdf_bytes, "application/pdf"),
-        "type": (None, "pdf"),
-    }
-    r = requests.post("https://dev.opusoperations.com/upload/upload-file", files=files)
-    r.raise_for_status()
-    return r.text.strip()
-
-
-def _send_employee_photos_email(recipients, data, photos):
-    """Email photos from an employee occurrence report as attachments."""
-    import base64
-    from email.mime.image import MIMEImage
-
-    employee  = data.get("Employee_name", "Unknown Employee")
-    action    = ", ".join(data.get("Action_Taken", [])) if isinstance(data.get("Action_Taken"), list) else data.get("Action_Taken", "")
-    subject   = f"[Employee Occurrence] Photos — {employee}"
-
-    msg = MIMEMultipart("mixed")
-    msg["Subject"] = subject
-    msg["From"]    = SMTP_FROM
-    msg["To"]      = ", ".join(recipients)
-
-    body = MIMEText(
-        f"Photos attached for Employee Occurrence Report.\n\n"
-        f"Employee: {employee}\n"
-        f"Action Taken: {action}\n"
-        f"Supervisor: {data.get('Name_Of_Supervisor', '')}\n\n"
-        f"These photos were submitted alongside the doForms occurrence report.",
-        "plain"
-    )
-    msg.attach(body)
-
-    for photo in photos:
-        try:
-            img_data = base64.b64decode(photo["data"])
-            img = MIMEImage(img_data, _subtype=photo.get("content_type", "image/jpeg").split("/")[-1])
-            img.add_header("Content-Disposition", "attachment", filename=photo.get("filename", "photo.jpg"))
-            msg.attach(img)
-        except Exception as e:
-            log.warning("Could not attach photo %s: %s", photo.get("filename"), e)
-
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.ehlo()
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(SMTP_FROM, recipients, msg.as_string())
-
-
-def _send_incident_email(recipients_str, data, report_type):
-    """Send incident report notification email to all recipients."""
-    subject = f"[{report_type or 'Incident Report'}] {data.get('Incident_Type', '')} — {data.get('Job_Address', '')}"
-
-    body_lines = [
-        f"<b>Report Type:</b> {report_type}",
-        f"<b>Incident Type:</b> {data.get('Incident_Type', '')}",
-        f"<b>Address:</b> {data.get('Job_Address', '')}",
-        f"<b>Customer:</b> {data.get('Customer_Name', '')}",
-        f"<b>Supervisor:</b> {data.get('Name_Of_Supervisor', '')}",
-        f"<b>Employee:</b> {data.get('Employee_name', '')}",
-        f"<b>Unit / Location:</b> {data.get('Unit_Number_Or_Location', '')}",
-        f"<b>Date/Time of Incident:</b> {data.get('Date_Time_Of_Incident', '')}",
-        f"<b>Date/Time of Report:</b> {data.get('Date_Time_Of_Report', '')}",
-        "",
-        f"<b>What Happened:</b><br>{data.get('Describe_What_Happened', '').replace(chr(10), '<br>')}",
-        "",
-        f"<b>Who Was Notified:</b><br>{data.get('Who_Was_Notified', '')}",
-        "",
-        f"<b>How Was It Resolved:</b><br>{data.get('How_Was_It_Resolved', '').replace(chr(10), '<br>')}",
-    ]
-    if data.get("Additional_Information"):
-        body_lines += ["", f"<b>Additional Information:</b><br>{data['Additional_Information']}"]
-    if data.get("Previous_Undocumented_Incidents"):
-        body_lines += ["", f"<b>Prior Undocumented Incidents:</b><br>{data['Previous_Undocumented_Incidents']}"]
-
-    html_body = f"""
-<html><body style="font-family:sans-serif;font-size:14px;color:#222;line-height:1.6;">
-  <div style="max-width:700px;margin:0 auto;border:1px solid #ddd;border-radius:8px;padding:24px;">
-    <div style="background:#e8622a;color:#fff;padding:12px 16px;border-radius:6px;margin-bottom:20px;">
-      <strong>Opus Operations — Incident Report</strong>
-    </div>
-    {'<br>'.join(body_lines)}
-    <hr style="margin-top:24px;border:none;border-top:1px solid #eee;">
-    <p style="color:#888;font-size:12px;">Submitted via Opus Operations Incident Reporter</p>
-  </div>
-</body></html>"""
-
-    text_body = "\n".join(
-        line.replace("<br>", "\n").replace("<b>", "").replace("</b>", "")
-        for line in body_lines
-    )
-
-    recipients = [r.strip() for r in recipients_str.replace(",", ";").split(";") if r.strip()]
-    if not recipients:
-        return
-
-    msg = MIMEMultipart("alternative")
-    msg["Subject"] = subject
-    msg["From"]    = SMTP_FROM
-    msg["To"]      = ", ".join(recipients)
-    msg.attach(MIMEText(text_body, "plain"))
-    msg.attach(MIMEText(html_body, "html"))
-
-    with smtplib.SMTP(SMTP_HOST, SMTP_PORT) as server:
-        server.ehlo()
-        server.starttls()
-        server.login(SMTP_USER, SMTP_PASSWORD)
-        server.sendmail(SMTP_FROM, recipients, msg.as_string())
-    print(f"[EMAIL] Incident report sent to: {', '.join(recipients)}")
-
-
-@app.route("/api/feedback", methods=["POST"])
-def feedback():
-    sid  = request.cookies.get("incident_session")
-    data = request.json
-    fb   = data.get("feedback", "").strip()
-    if not fb or not sid:
-        return jsonify({"ok": False})
-
-    log_dir = Path(__file__).parent / "conversation_logs"
-    matches = sorted(log_dir.glob(f"*_{sid[:8]}.json"), reverse=True)
-    if not matches:
-        return jsonify({"ok": False, "error": "Log file not found"})
-    
-    log_file = matches[0]
-    with open(log_file, "r", encoding="utf-8") as f:
-        payload = json.load(f)
-    
-    payload["feedback"] = fb
-    payload["feedback_timestamp"] = datetime.now().isoformat()
-    
-    with open(log_file, "w", encoding="utf-8") as f:
-        json.dump(payload, f, indent=2, ensure_ascii=False)
-    
-    print(f"[FEEDBACK] Saved to {log_file}")
-    return jsonify({"ok": True})
-
-
-@app.route("/api/view-photo")
-def view_photo():
-    """Proxy an uploaded photo and serve it inline (opens in browser instead of downloading)."""
-    from urllib.parse import unquote
-    from flask import Response, stream_with_context
-    url = request.args.get("url", "")
-    if not url.startswith("https://devstoragedocument.blob.core.windows.net/"):
-        return "Invalid URL", 400
-    try:
-        r = requests.get(url, stream=True, timeout=15)
-        r.raise_for_status()
-        ctype = r.headers.get("Content-Type", "image/jpeg")
-        return Response(
-            stream_with_context(r.iter_content(chunk_size=8192)),
-            content_type=ctype,
-            headers={"Content-Disposition": "inline"},
-        )
-    except Exception as e:
-        return f"Could not load photo: {e}", 502
-
-
-@app.route("/api/logs")
-def view_logs():
-    """View recent server logs — checks server.log and nohup.out."""
-    base = Path(__file__).parent
-    candidates = [base / "server.log", base / "nohup.out"]
-    content = []
-    for p in candidates:
-        content.append(f"=== {p} ===")
-        if p.exists():
-            try:
-                lines = p.read_text(encoding="utf-8", errors="replace").splitlines()
-                content.extend(lines[-150:])
-            except Exception as e:
-                content.append(f"  [read error: {e}]")
-        else:
-            content.append("  [file not found]")
-        content.append("")
-    html = "<pre style='font-family:monospace;font-size:12px;padding:16px;white-space:pre-wrap;word-break:break-all'>"
-    html += "\n".join(content)
-    html += "</pre>"
-    return html
 
 
 @app.route("/robots.txt")
