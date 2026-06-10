@@ -281,23 +281,24 @@ def auth_logout():
 # EXISTING CODE -- unchanged below this line
 # ════════════════════════════════════════════════════════════════
 
-def save_conversation(sid, state, conversation):
+def save_conversation(sid, state, conversation, final_report=None):
     log_dir = Path(__file__).parent / "conversation_logs"
     log_dir.mkdir(exist_ok=True)
-    
+
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     filename = log_dir / f"{timestamp}_{sid[:8]}.json"
-    
+
     payload = {
         "session_id": sid,
         "timestamp": datetime.now().isoformat(),
         "final_state": state,
+        "final_report": final_report,
         "conversation": conversation,
     }
-    
+
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
-    
+
     print(f"[LOG] Conversation saved to {filename}")
 
 
@@ -330,8 +331,8 @@ def dropdown_addresses():
         conn   = get_db_conn()
         cursor = conn.cursor()
         cursor.execute("""
-            SELECT DISTINCT name 
-            FROM customer 
+            SELECT DISTINCT name
+            FROM customer WITH (NOLOCK)
             WHERE name IS NOT NULL
               AND in_drop_down = 1
               AND active = 1
@@ -370,7 +371,7 @@ def dropdown_employees():
     try:
         conn   = get_db_conn()
         cursor = conn.cursor()
-        cursor.execute("SELECT DISTINCT full_name FROM employee WHERE full_name IS NOT NULL AND employee_status != 'T' ORDER BY full_name")
+        cursor.execute("SELECT DISTINCT full_name FROM employee WITH (NOLOCK) WHERE full_name IS NOT NULL AND employee_status != 'T' ORDER BY full_name")
         names = [row[0] for row in cursor.fetchall()]
         conn.close()
         return jsonify(names)
@@ -599,8 +600,47 @@ def _generate_report(sess):
         result = finalize(sess["state"])
     result = review_and_patch(result, sess.get("conversation", []))
     json_str = json.dumps(result, indent=2)
-    save_conversation(sess.get("sid", "unknown"), sess["state"], sess["conversation"])
+    save_conversation(sess.get("sid", "unknown"), sess["state"], sess["conversation"], final_report=result)
     return f"Got it -- let me write that up for you.\n\nSTORY_READY\n```json\n{json_str}\n```"
+
+
+# ── Feedback ─────────────────────────────────────────────────────
+@app.route("/api/feedback", methods=["POST"])
+def save_feedback():
+    data     = request.json or {}
+    feedback = (data.get("feedback") or "").strip()
+    if not feedback:
+        return jsonify({"ok": True})
+
+    sid = request.cookies.get("incident_session", "unknown")
+    sid_prefix = sid[:8]
+
+    log_dir = Path(__file__).parent / "conversation_logs"
+    log_dir.mkdir(exist_ok=True)
+
+    # Find the most recent conversation log for this session and add feedback to it
+    matches = sorted(log_dir.glob(f"*_{sid_prefix}.json"), reverse=True)
+    if matches:
+        existing_file = matches[0]
+        try:
+            with open(existing_file, "r", encoding="utf-8") as f:
+                payload = json.load(f)
+            payload["feedback"] = feedback
+            with open(existing_file, "w", encoding="utf-8") as f:
+                json.dump(payload, f, indent=2, ensure_ascii=False)
+            log.info("Feedback added to existing log (session=%s): %s", sid_prefix, feedback)
+            return jsonify({"ok": True})
+        except Exception as e:
+            log.error("Failed to update conversation log with feedback: %s", e)
+
+    # Fallback: no existing log found, write a standalone entry
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    filename  = log_dir / f"{timestamp}_{sid_prefix}.json"
+    with open(filename, "w", encoding="utf-8") as f:
+        json.dump({"session_id": sid, "timestamp": datetime.now().isoformat(), "feedback": feedback}, f, indent=2)
+
+    log.info("Feedback saved as new log (session=%s): %s", sid_prefix, feedback)
+    return jsonify({"ok": True})
 
 
 # ── Reset session ────────────────────────────────────────────────

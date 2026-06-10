@@ -295,3 +295,146 @@ NameError: name 'review_and_patch' is not defined
 2026-06-09 12:46:25,250 INFO 127.0.0.1 - - [09/Jun/2026 12:46:25] "POST /api/chat HTTP/1.1" 200 -
 2026-06-09 12:46:50,494 INFO 127.0.0.1 - - [09/Jun/2026 12:46:50] "POST /api/chat HTTP/1.1" 200 -
 2026-06-09 12:46:50,510 INFO 127.0.0.1 - - [09/Jun/2026 12:46:50] "GET /api/email-recipients?report_type=employee_occurrence&supervisor= HTTP/1.1" 200 -
+2026-06-09 13:05:23,087 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-09 13:05:23,087 INFO [33mPress CTRL+C to quit[0m
+2026-06-09 13:05:34,216 INFO 127.0.0.1 - - [09/Jun/2026 13:05:34] "GET / HTTP/1.1" 200 -
+2026-06-09 13:05:34,309 INFO 127.0.0.1 - - [09/Jun/2026 13:05:34] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-09 13:05:34,324 INFO 127.0.0.1 - - [09/Jun/2026 13:05:34] "POST /api/reset HTTP/1.1" 200 -
+2026-06-09 13:05:34,508 INFO 127.0.0.1 - - [09/Jun/2026 13:05:34] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-09 13:05:44,596 INFO 127.0.0.1 - - [09/Jun/2026 13:05:44] "POST /api/chat HTTP/1.1" 200 -
+2026-06-09 13:31:05,614 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-09 13:31:05,614 INFO [33mPress CTRL+C to quit[0m
+2026-06-09 13:31:15,271 INFO 127.0.0.1 - - [09/Jun/2026 13:31:15] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-09 13:31:15,362 INFO 127.0.0.1 - - [09/Jun/2026 13:31:15] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-09 13:31:15,381 INFO 127.0.0.1 - - [09/Jun/2026 13:31:15] "POST /api/reset HTTP/1.1" 200 -
+2026-06-09 13:31:15,566 INFO 127.0.0.1 - - [09/Jun/2026 13:31:15] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-09 13:31:22,214 INFO 127.0.0.1 - - [09/Jun/2026 13:31:22] "POST /api/chat HTTP/1.1" 200 -
+2026-06-09 13:31:46,780 INFO 127.0.0.1 - - [09/Jun/2026 13:31:46] "GET /api/email-recipients?report_type=incident&supervisor= HTTP/1.1" 200 -
+2026-06-09 13:31:56,963 INFO 127.0.0.1 - - [09/Jun/2026 13:31:56] "GET /api/email-recipients?report_type=incident&supervisor= HTTP/1.1" 200 -
+2026-06-09 13:37:28,583 INFO 127.0.0.1 - - [09/Jun/2026 13:37:28] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 11:37:36,127 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-10 11:37:36,128 INFO [33mPress CTRL+C to quit[0m
+2026-06-10 11:37:59,542 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-10 11:37:59,542 INFO [33mPress CTRL+C to quit[0m
+2026-06-10 11:38:07,125 INFO 127.0.0.1 - - [10/Jun/2026 11:38:07] "GET / HTTP/1.1" 200 -
+2026-06-10 11:38:07,223 INFO 127.0.0.1 - - [10/Jun/2026 11:38:07] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-10 11:38:07,238 INFO 127.0.0.1 - - [10/Jun/2026 11:38:07] "POST /api/reset HTTP/1.1" 200 -
+2026-06-10 11:38:07,482 INFO 127.0.0.1 - - [10/Jun/2026 11:38:07] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-10 11:38:07,547 INFO 127.0.0.1 - - [10/Jun/2026 11:38:07] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 11:38:46,226 INFO 127.0.0.1 - - [10/Jun/2026 11:38:46] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:39:38,557 INFO 127.0.0.1 - - [10/Jun/2026 11:39:38] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:42:36,213 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-10 11:42:36,214 INFO [33mPress CTRL+C to quit[0m
+2026-06-10 11:42:42,064 INFO 127.0.0.1 - - [10/Jun/2026 11:42:42] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-10 11:42:42,079 INFO 127.0.0.1 - - [10/Jun/2026 11:42:42] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-10 11:42:42,083 INFO 127.0.0.1 - - [10/Jun/2026 11:42:42] "POST /api/reset HTTP/1.1" 200 -
+2026-06-10 11:42:42,313 INFO 127.0.0.1 - - [10/Jun/2026 11:42:42] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-10 11:42:42,370 INFO 127.0.0.1 - - [10/Jun/2026 11:42:42] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 11:42:48,332 INFO 127.0.0.1 - - [10/Jun/2026 11:42:48] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:42:57,626 INFO 127.0.0.1 - - [10/Jun/2026 11:42:57] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:43:33,032 INFO 127.0.0.1 - - [10/Jun/2026 11:43:33] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:43:52,538 INFO 127.0.0.1 - - [10/Jun/2026 11:43:52] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:44:09,288 INFO 127.0.0.1 - - [10/Jun/2026 11:44:09] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:44:16,923 INFO 127.0.0.1 - - [10/Jun/2026 11:44:16] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:44:27,966 INFO 127.0.0.1 - - [10/Jun/2026 11:44:27] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:44:40,350 INFO 127.0.0.1 - - [10/Jun/2026 11:44:40] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:45:04,556 INFO 127.0.0.1 - - [10/Jun/2026 11:45:04] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:45:04,586 INFO 127.0.0.1 - - [10/Jun/2026 11:45:04] "GET /api/email-recipients?report_type=incident&supervisor= HTTP/1.1" 200 -
+2026-06-10 11:48:31,710 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-10 11:48:31,711 INFO [33mPress CTRL+C to quit[0m
+2026-06-10 11:48:35,294 INFO 127.0.0.1 - - [10/Jun/2026 11:48:35] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-10 11:48:35,312 INFO 127.0.0.1 - - [10/Jun/2026 11:48:35] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-10 11:48:35,319 INFO 127.0.0.1 - - [10/Jun/2026 11:48:35] "POST /api/reset HTTP/1.1" 200 -
+2026-06-10 11:48:35,569 INFO 127.0.0.1 - - [10/Jun/2026 11:48:35] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-10 11:48:35,630 INFO 127.0.0.1 - - [10/Jun/2026 11:48:35] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 11:48:43,653 INFO 127.0.0.1 - - [10/Jun/2026 11:48:43] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:48:50,530 INFO 127.0.0.1 - - [10/Jun/2026 11:48:50] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:49:03,176 INFO 127.0.0.1 - - [10/Jun/2026 11:49:03] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:49:17,623 INFO 127.0.0.1 - - [10/Jun/2026 11:49:17] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:49:30,972 INFO 127.0.0.1 - - [10/Jun/2026 11:49:30] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:49:41,517 INFO 127.0.0.1 - - [10/Jun/2026 11:49:41] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:50:26,129 INFO 127.0.0.1 - - [10/Jun/2026 11:50:26] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:50:50,686 INFO 127.0.0.1 - - [10/Jun/2026 11:50:50] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:50:50,714 INFO 127.0.0.1 - - [10/Jun/2026 11:50:50] "GET /api/email-recipients?report_type=employee_occurrence&supervisor= HTTP/1.1" 200 -
+2026-06-10 11:52:35,096 INFO 127.0.0.1 - - [10/Jun/2026 11:52:35] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-10 11:52:35,120 INFO 127.0.0.1 - - [10/Jun/2026 11:52:35] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-10 11:52:35,125 INFO 127.0.0.1 - - [10/Jun/2026 11:52:35] "POST /api/reset HTTP/1.1" 200 -
+2026-06-10 11:52:35,271 INFO 127.0.0.1 - - [10/Jun/2026 11:52:35] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-10 11:52:35,330 INFO 127.0.0.1 - - [10/Jun/2026 11:52:35] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 11:52:53,249 INFO 127.0.0.1 - - [10/Jun/2026 11:52:53] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:53:01,734 INFO 127.0.0.1 - - [10/Jun/2026 11:53:01] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:53:16,993 INFO 127.0.0.1 - - [10/Jun/2026 11:53:16] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:53:38,267 INFO 127.0.0.1 - - [10/Jun/2026 11:53:38] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:53:55,180 INFO 127.0.0.1 - - [10/Jun/2026 11:53:55] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:54:23,493 INFO 127.0.0.1 - - [10/Jun/2026 11:54:23] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 11:54:23,517 INFO 127.0.0.1 - - [10/Jun/2026 11:54:23] "GET /api/email-recipients?report_type=employee_occurrence&supervisor= HTTP/1.1" 200 -
+2026-06-10 11:56:18,674 INFO 127.0.0.1 - - [10/Jun/2026 11:56:18] "[33mPOST /api/feedback HTTP/1.1[0m" 404 -
+2026-06-10 12:04:19,144 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-10 12:04:19,144 INFO [33mPress CTRL+C to quit[0m
+2026-06-10 12:04:24,426 INFO 127.0.0.1 - - [10/Jun/2026 12:04:24] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-10 12:04:24,450 INFO 127.0.0.1 - - [10/Jun/2026 12:04:24] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-10 12:04:24,458 INFO 127.0.0.1 - - [10/Jun/2026 12:04:24] "POST /api/reset HTTP/1.1" 200 -
+2026-06-10 12:04:24,699 INFO 127.0.0.1 - - [10/Jun/2026 12:04:24] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-10 12:04:24,760 INFO 127.0.0.1 - - [10/Jun/2026 12:04:24] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 12:04:32,811 INFO 127.0.0.1 - - [10/Jun/2026 12:04:32] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:04:41,331 INFO 127.0.0.1 - - [10/Jun/2026 12:04:41] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:05:09,351 INFO 127.0.0.1 - - [10/Jun/2026 12:05:09] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:05:26,340 INFO 127.0.0.1 - - [10/Jun/2026 12:05:26] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:05:41,450 INFO 127.0.0.1 - - [10/Jun/2026 12:05:41] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:05:51,719 INFO 127.0.0.1 - - [10/Jun/2026 12:05:51] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:06:05,600 INFO 127.0.0.1 - - [10/Jun/2026 12:06:05] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:06:31,666 INFO 127.0.0.1 - - [10/Jun/2026 12:06:31] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:06:31,693 INFO 127.0.0.1 - - [10/Jun/2026 12:06:31] "GET /api/email-recipients?report_type=employee_occurrence&supervisor= HTTP/1.1" 200 -
+2026-06-10 12:06:36,567 INFO 127.0.0.1 - - [10/Jun/2026 12:06:36] "[33mPOST /api/feedback HTTP/1.1[0m" 404 -
+2026-06-10 12:08:33,262 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-10 12:08:33,263 INFO [33mPress CTRL+C to quit[0m
+2026-06-10 12:08:37,134 INFO 127.0.0.1 - - [10/Jun/2026 12:08:37] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-10 12:08:37,151 INFO 127.0.0.1 - - [10/Jun/2026 12:08:37] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-10 12:08:37,156 INFO 127.0.0.1 - - [10/Jun/2026 12:08:37] "POST /api/reset HTTP/1.1" 200 -
+2026-06-10 12:08:37,379 INFO 127.0.0.1 - - [10/Jun/2026 12:08:37] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-10 12:08:37,437 INFO 127.0.0.1 - - [10/Jun/2026 12:08:37] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 12:08:47,875 INFO 127.0.0.1 - - [10/Jun/2026 12:08:47] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:08:54,489 INFO 127.0.0.1 - - [10/Jun/2026 12:08:54] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:09:01,409 INFO 127.0.0.1 - - [10/Jun/2026 12:09:01] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:10:18,515 INFO 127.0.0.1 - - [10/Jun/2026 12:10:18] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-10 12:10:18,540 INFO 127.0.0.1 - - [10/Jun/2026 12:10:18] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-10 12:10:18,546 INFO 127.0.0.1 - - [10/Jun/2026 12:10:18] "POST /api/reset HTTP/1.1" 200 -
+2026-06-10 12:10:18,690 INFO 127.0.0.1 - - [10/Jun/2026 12:10:18] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-10 12:10:18,747 INFO 127.0.0.1 - - [10/Jun/2026 12:10:18] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 12:10:28,291 INFO 127.0.0.1 - - [10/Jun/2026 12:10:28] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:10:35,153 INFO 127.0.0.1 - - [10/Jun/2026 12:10:35] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:10:43,963 INFO 127.0.0.1 - - [10/Jun/2026 12:10:43] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:11:12,499 INFO 127.0.0.1 - - [10/Jun/2026 12:11:12] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:11:24,871 INFO 127.0.0.1 - - [10/Jun/2026 12:11:24] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:12:00,564 INFO 127.0.0.1 - - [10/Jun/2026 12:12:00] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:12:00,585 INFO 127.0.0.1 - - [10/Jun/2026 12:12:00] "GET /api/email-recipients?report_type=employee_occurrence&supervisor= HTTP/1.1" 200 -
+2026-06-10 12:12:27,084 INFO Feedback saved (session=537a82a3): ukfkufku
+2026-06-10 12:12:27,084 INFO 127.0.0.1 - - [10/Jun/2026 12:12:27] "POST /api/feedback HTTP/1.1" 200 -
+2026-06-10 12:13:37,164 INFO [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on http://127.0.0.1:5000
+2026-06-10 12:13:37,165 INFO [33mPress CTRL+C to quit[0m
+2026-06-10 12:13:41,855 INFO 127.0.0.1 - - [10/Jun/2026 12:13:41] "[36mGET / HTTP/1.1[0m" 304 -
+2026-06-10 12:13:41,873 INFO 127.0.0.1 - - [10/Jun/2026 12:13:41] "GET /api/auth/check HTTP/1.1" 200 -
+2026-06-10 12:13:41,878 INFO 127.0.0.1 - - [10/Jun/2026 12:13:41] "POST /api/reset HTTP/1.1" 200 -
+2026-06-10 12:13:42,139 INFO 127.0.0.1 - - [10/Jun/2026 12:13:42] "GET /api/dropdown/addresses HTTP/1.1" 200 -
+2026-06-10 12:13:42,207 INFO 127.0.0.1 - - [10/Jun/2026 12:13:42] "GET /api/dropdown/employees HTTP/1.1" 200 -
+2026-06-10 12:13:49,374 INFO 127.0.0.1 - - [10/Jun/2026 12:13:49] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:13:53,914 INFO 127.0.0.1 - - [10/Jun/2026 12:13:53] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:14:00,197 INFO 127.0.0.1 - - [10/Jun/2026 12:14:00] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:14:21,754 INFO 127.0.0.1 - - [10/Jun/2026 12:14:21] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:14:47,599 INFO 127.0.0.1 - - [10/Jun/2026 12:14:47] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:14:59,213 INFO 127.0.0.1 - - [10/Jun/2026 12:14:59] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:15:12,329 INFO 127.0.0.1 - - [10/Jun/2026 12:15:12] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:15:24,259 INFO 127.0.0.1 - - [10/Jun/2026 12:15:24] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:15:49,810 INFO 127.0.0.1 - - [10/Jun/2026 12:15:49] "POST /api/chat HTTP/1.1" 200 -
+2026-06-10 12:15:49,833 INFO 127.0.0.1 - - [10/Jun/2026 12:15:49] "GET /api/email-recipients?report_type=employee_occurrence&supervisor= HTTP/1.1" 200 -
+2026-06-10 12:15:58,278 INFO Feedback added to existing log (session=7b643385): asked twice who is filling out report
+2026-06-10 12:15:58,278 INFO 127.0.0.1 - - [10/Jun/2026 12:15:58] "POST /api/feedback HTTP/1.1" 200 -

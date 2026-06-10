@@ -4,3 +4,4 @@ __pycache__/
 _dev_archive_/
 *.pyc
 .env
+.device_tokens.json

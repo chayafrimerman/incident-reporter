@@ -108,8 +108,10 @@ Return ONLY valid JSON with this exact structure — no markdown, no explanation
 }}
 
 REPORT TYPE — classify first:
-- "incident": Something that happened AT A PROPERTY involving external parties or property events. The Opus employee is the RESPONDER/REPORTER, not the subject. Examples: trespassing, disturbance, package theft, assault, fire, medical emergency, resident complaint, missing person, criminal activity.
-- "employee_occurrence": The story is primarily about an Opus Operations EMPLOYEE's own behavior, performance, attendance, conduct, or personal injury/medical situation affecting their employment. The employee IS the subject of the report. Examples: arriving late, no-call/no-show, sleeping on the job, dress code violation, insubordination, employee harassment, employee injury on the job, unprofessional conduct.
+- "employee_occurrence": The story is primarily about an Opus Operations EMPLOYEE's MISCONDUCT or DISCIPLINARY INFRACTION. The employee is being disciplined or documented. Examples: arriving late, no-call/no-show, sleeping on the job, dress code violation, insubordination, unprofessional conduct, employee harassment. KEY: the report exists because the employee did something WRONG and action is being taken against them.
+- "incident": Something that happened AT A PROPERTY or TO a person.  Examples: trespassing, disturbance, package theft, assault, fire, medical emergency, resident complaint, missing person, criminal activity, employee injured on the job. 
+
+IMPORTANT: An employee getting hurt, falling, having a medical event, or being injured on the job is ALWAYS "incident" — never "employee_occurrence".
 
 FIELD RULES:
 - "when": Date and/or time if mentioned. Format: "May 14, 2026 at 7:00 AM". Leave blank if not mentioned.
@@ -359,26 +361,36 @@ def finalize(state):
     today = datetime.now().strftime("%A, %B %d, %Y")
     system = f"""Today is {today}.
 
-You are an incident report writer for Opus Operations (security/concierge company).
+You are a professional incident report writer for Opus Operations (security/concierge company).
 
 Generate a complete incident report from this data:
 {json.dumps(state, indent=2)}
 
+WRITING STYLE — mandatory for ALL narrative fields:
+- Write in formal, professional, third-person past tense.
+- Use complete sentences and proper paragraph structure. No bullet points. No fragments.
+- Use full names and titles for every person on first reference (e.g. "Security Officer Jane Smith"). Use last name only on subsequent references.
+- Use "approximately" before any time that was not confirmed to the minute.
+- Name both sender and recipient explicitly for every communication (phone call, text, email, voice note, radio) — never use ambiguous pronouns.
+- Include every specific detail from the state: exact names, titles, locations, times, sequence of events, communications, actions taken, and outcomes. Do not compress, summarize, or omit anything.
+- Do not repeat the same fact more than once.
+- Do not invent or infer any detail not present in the state data.
+
 Return ONLY valid JSON — no markdown, no explanation:
 {{
   "status": "complete",
-  "Describe_What_Happened": "Full factual chronological narrative. Use full names and titles for all people. Use 'approximately' for unverified times. Facts only. CRITICAL: Include every single detail from the state data — do not summarize, compress, or drop anything. Do not invent or infer details not in the state. Preserve the exact method of communication (email, phone call, voice note, in person, etc.). When describing any communication (voice note, phone call, text, email), always name both the sender and recipient explicitly — never use ambiguous pronouns like 'they' or 'he' where it is unclear who is meant. Do not repeat the same fact more than once. The narrative should be as detailed and complete as the source data allows.",
-  "Who_Was_Notified": "Full names and roles of everyone notified",
-  "How_Was_It_Resolved": "Actions already taken",
-  "Next_Steps": "Actions still needed, or 'No further action planned'",
+  "Describe_What_Happened": "Full factual chronological narrative written in formal third-person past tense. Include every detail — the sequence of events, who did or said what, all communications (method, sender, recipient, content), all actions taken at the scene, and any relevant background. This field must be complete enough that a reader who was not present can fully understand exactly what occurred.",
+  "Who_Was_Notified": "Write in complete sentences. Identify each person notified by full name and title, the method of notification (phone, radio, in person, etc.), and the approximate time they were notified. If nobody was notified, state that explicitly.",
+  "How_Was_It_Resolved": "Write in complete sentences. Describe every action taken to address or contain the incident, in chronological order, with the names and titles of those who took each action.",
+  "Next_Steps": "Write in complete sentences. List all follow-up actions still required, who is responsible, and any expected timelines. If no further action is planned, state: 'No further action is planned at this time.'",
   "Incident_Type": "Choose the single best match from these exact options: 'Trespassing / Unathorized access' | 'Disturbance' | 'Missing / Stolen Package' | 'Resident Issue' | 'Criminal Activity' | 'Violence and Altercations' | 'Emergencies'. Use the examples as guidance: Trespassing=unauthorized visitors/domestic partners barred from property; Disturbance=narcotics, loud music, disorderly conduct, neighbor complaints; Missing/Stolen Package=missing/stolen/unaccounted packages; Resident Issue=complaints, lockouts, missing child, front desk issues; Criminal Activity=theft, vandalism, drug distribution, trespassing, weapons, shooting; Violence and Altercations=domestic violence, fights, threats, assault, harassment, stalking; Emergencies=fire, smoke, medical, elevator entrapment, gas leak, flooding, structural damage, power outage.",
   "Report_Type": "Based on the Incident_Type chosen above, set this to exactly 'Jobsite Incident Report' if Incident_Type is Trespassing/Unathorized access, Disturbance, Missing/Stolen Package, or Resident Issue. Set to exactly 'Emergency Incident Report' if Incident_Type is Criminal Activity, Violence and Altercations, or Emergencies.",
   "Unit_Number_Or_Location": "Specific unit, floor, or area",
   "Date_Time_Of_Incident": "YYYY-MM-DDTHH:MM:SS",
-  "Previous_Undocumented_Incidents": "Summary of any undocumented prior incidents. Leave blank if none."
+  "Previous_Undocumented_Incidents": "Write in complete sentences. Summarize any undocumented prior incidents, including dates, parties involved, and nature of the prior incident. Leave blank if none."
 }}"""
 
-    raw = call_claude(system, [{"role": "user", "content": "Generate the report."}], max_tokens=2048)
+    raw = call_claude(system, [{"role": "user", "content": "Generate the report."}], max_tokens=3000)
     return parse_json(raw)
 
 
@@ -400,10 +412,10 @@ CONVERSATION SO FAR:
 
 Decide if we have enough detail to write a complete occurrence report.
 
-We need ALL of these 4 things:
+We need ALL of these things:
 1. ACTION TAKEN — what disciplinary action was taken (e.g. verbal warning, written warning, counseling session, suspension, termination, record of discussion). Ask if not stated.
 2. REASON FOR ACTION — what specifically the employee did that warranted this action. Must be specific, not vague.
-3. STANDARDS EXPECTED — what was communicated to the employee and what expectations or standards were set going forward. Ask if not stated.
+3. STANDARDS EXPECTED — TERMINATION EXCEPTION: First, scan both the CURRENT STATE and the full CONVERSATION above for any mention of "termination" or "terminated". If termination is mentioned anywhere — in the state OR in any user message — SKIP this field entirely. Do not ask about future expectations or standards for a terminated employee. Only ask about standards/expectations if the action is NOT a termination.
 4. EMPLOYEE'S REACTION — how the employee responded. Ask if not stated. Accept "no reaction" or "not applicable" if there was no direct interaction.
 
 VIOLATION CATEGORY — identify from the story if obvious. If unclear, ask. Options:
@@ -501,7 +513,7 @@ def emp_finalize(state):
     today = datetime.now().strftime("%A, %B %d, %Y")
     system = f"""Today is {today}.
 
-You are an occurrence report writer for Opus Operations (security/concierge company).
+You are a professional occurrence report writer for Opus Operations (security/concierge company).
 
 Generate a complete Employee Occurrence Report from this data:
 {json.dumps(state, indent=2)}
@@ -509,6 +521,14 @@ Generate a complete Employee Occurrence Report from this data:
 From the "who" array, identify:
 - The EMPLOYEE being documented (the person whose behavior is being reported) — include their name AND job title
 - The SUPERVISOR or manager filing the report
+
+WRITING STYLE — mandatory for ALL narrative fields:
+- Write in formal, professional, third-person past tense.
+- Use complete sentences and proper paragraph structure. No bullet points. No fragments.
+- Use full name and title for every person on first reference. Last name only on subsequent references.
+- Include every specific detail from the state — exact names, titles, dates, times, locations, what was said, what was done, and the employee's response. Do not compress, summarize, or omit anything.
+- Do not repeat the same fact more than once.
+- Do not invent or infer any detail not present in the state data.
 
 Return ONLY valid JSON — no markdown, no explanation:
 {{
@@ -518,14 +538,14 @@ Return ONLY valid JSON — no markdown, no explanation:
   "Employee_Title": "The employee's job title or role (e.g. Security Guard, Concierge, etc.)",
   "Supervisor_Name": "Full name of the supervisor filing the report",
   "Incident_Type": "Violation category — one of: Time and Attendance | Job Performance | Professional Conduct | Harassment and Misconduct | Medical and Injury | Fraternization | Appearance",
-  "Reason_for_Action": "Full factual narrative of what the employee did and why this action was taken. Use the reason_for_action from the state. Facts only — do not invent details. Do not repeat the same fact more than once.",
-  "Conversation_Summary_and_Expec": "What was communicated to the employee and what standards or expectations were set going forward. Use the standards_expected from the state.",
-  "Employee_Reaction": "How the employee responded. Use the employee_reaction from the state. Leave blank if not stated.",
+  "Reason_for_Action": "Full factual narrative, written in formal third-person past tense, explaining exactly what the employee did, when it occurred, where it occurred, and why this action was warranted. Include every specific detail — dates, times, locations, prior occurrences, communications, and the impact of the employee's behavior. This field must be thorough enough to stand alone as a formal record.",
+  "Conversation_Summary_and_Expec": "Write in complete sentences. If the action taken is Termination: describe the termination conversation — what was communicated to the employee about the reason for termination, how and when they were notified, and any relevant details of that conversation. Do NOT write about future expectations or standards — the employee has been terminated. If the action is anything other than Termination: describe the full conversation with the employee, including what was communicated about the violation, what specific standards and expectations were set going forward, and any commitments or acknowledgments made.",
+  "Employee_Reaction": "Write in complete sentences. Describe exactly how the employee responded — verbally, emotionally, or in writing. If there was no direct interaction, state that explicitly.",
   "Action_Taken_Suggested": "The action_taken value from state — used to pre-check the correct checkbox. E.g. 'Written Warning', 'Verbal Warning', 'Suspension', 'Termination', 'Counseling Session', 'Record of Discussion'.",
   "Date_Time_Of_Occurrence": "YYYY-MM-DDTHH:MM:SS"
 }}"""
 
-    raw = call_claude(system, [{"role": "user", "content": "Generate the occurrence report."}], max_tokens=2048)
+    raw = call_claude(system, [{"role": "user", "content": "Generate the occurrence report."}], max_tokens=3000)
     return parse_json(raw)
 
 
@@ -563,6 +583,7 @@ Instructions:
 - If any fact from the user's messages is missing from the report fields, add it in the correct field.
 - Do NOT invent or add details not mentioned by the user.
 - Do NOT remove or shorten existing content.
+- All narrative content must be written in formal, professional, third-person past tense, using complete sentences. No bullet points or fragments.
 - Return ONLY valid JSON with the same keys as the CURRENT REPORT FIELDS (only the fields listed above).
   Example: {{"Reason_for_Action": "...", "Conversation_Summary_and_Expec": "...", "Employee_Reaction": "..."}}
 - If nothing needs to change, return the fields unchanged."""
