@@ -643,6 +643,12 @@ def save_feedback():
     return jsonify({"ok": True})
 
 
+# ── Admin: active session count ──────────────────────────────────
+@app.route("/api/admin/sessions", methods=["GET"])
+def admin_sessions():
+    return jsonify({"active_sessions": len(_sessions)})
+
+
 # ── Reset session ────────────────────────────────────────────────
 @app.route("/api/reset", methods=["POST"])
 def reset_session():

@@ -1,4 +1,5 @@
 import json
+import time
 import requests
 from datetime import datetime
 from credentials import ANTHROPIC_API_KEY
@@ -35,27 +36,48 @@ EMPTY_STATE_EMPLOYEE = {
 
 
 # ── Claude call ──────────────────────────────────────────────────
-def call_claude(system_prompt, messages, max_tokens=1024):
-    response = requests.post(
-        "https://api.anthropic.com/v1/messages",
-        headers={
-            "x-api-key": ANTHROPIC_API_KEY,
-            "anthropic-version": "2023-06-01",
-            "content-type": "application/json",
-        },
-        json={
-            "model": "claude-sonnet-4-20250514",
-            "max_tokens": max_tokens,
-            "system": system_prompt,
-            "messages": messages,
-        },
-    )
-    if response.status_code != 200:
-        raise Exception(f"Claude API error: {response.text}")
-    return response.json()["content"][0]["text"]
+def call_claude(system_prompt, messages, max_tokens=1024, _retries=3):
+    last_error = None
+    for attempt in range(_retries):
+        try:
+            response = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": "claude-sonnet-4-20250514",
+                    "max_tokens": max_tokens,
+                    "system": system_prompt,
+                    "messages": messages,
+                },
+                timeout=60,
+            )
+            # Retry on overload/server errors
+            if response.status_code in (429, 529, 500, 502, 503, 504):
+                last_error = f"Claude API error {response.status_code}: {response.text}"
+                time.sleep(2 ** attempt)
+                continue
+            if response.status_code != 200:
+                raise Exception(f"Claude API error: {response.text}")
+            text = response.json()["content"][0]["text"]
+            if not text or not text.strip():
+                last_error = "Claude API returned empty response"
+                time.sleep(2 ** attempt)
+                continue
+            return text
+        except requests.exceptions.Timeout:
+            last_error = "Claude API request timed out"
+            time.sleep(2 ** attempt)
+            continue
+    raise Exception(f"Claude API failed after {_retries} attempts: {last_error}")
 
 
 def parse_json(raw):
+    if not raw or not raw.strip():
+        raise ValueError("Empty response passed to parse_json")
     clean = raw.strip()
     if "```" in clean:
         parts = clean.split("```")
