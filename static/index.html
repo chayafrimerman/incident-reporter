@@ -184,9 +184,39 @@
   .new-report-btn:hover { background: rgba(232,98,42,.1); }
 
   @media (max-width: 768px) {
+    /* Compact header */
+    header { padding: 12px 16px; gap: 8px; }
+    header h1 { font-size: 14px; }
+    header p { display: none; }
+    .status-pill { display: none; }
+
+    /* Stacked panels */
     .main { grid-template-columns: 1fr; }
     .chat-panel { height: 50vh; border-right: none; border-bottom: 1px solid var(--border); }
     .form-panel { height: 50vh; }
+
+    /* Full height form when chat is hidden (manual mode) */
+    .main.form-only .form-panel { height: calc(100vh - 60px); }
+
+    /* Single-column form fields */
+    .field-grid { grid-template-columns: 1fr !important; }
+
+    /* Compact header buttons */
+    .btn-label-full { display: none; }
+    .btn-label-short { display: inline !important; }
+    #logoutBtn { padding: 6px 10px; font-size: 11px; margin-left: 6px; }
+
+    /* Tighter padding */
+    .form-body { padding: 16px; }
+    .messages { padding: 16px; }
+    .chat-input-area { padding: 12px 16px; }
+    .form-footer { padding: 12px 16px; }
+    .recipients-panel { padding: 10px 16px 0; }
+
+    /* Make section labels and fields bigger for touch */
+    .field input, .field textarea, .field select { font-size: 16px; padding: 11px 12px; }
+    .check-label { font-size: 15px; padding: 4px 0; }
+    .check-label input[type="checkbox"] { width: 18px !important; height: 18px !important; }
   }
 
   /* ── Login overlay ── */
@@ -287,6 +317,11 @@
     font-size: 12px; cursor: pointer; align-self: center; text-decoration: underline; }
   .rtype-cancel:hover { color: var(--text); }
 
+  /* Recipients panel collapse */
+  #recipientsBody { overflow: hidden; transition: max-height .25s ease; max-height: 500px; }
+  #recipientsBody.collapsed { max-height: 0; }
+  #recipientsChevron.collapsed { transform: rotate(-90deg); }
+
   /* logout button in header */
   #logoutBtn {
     margin-left: 12px; background: transparent; color: var(--muted);
@@ -372,7 +407,7 @@
     <div class="status-dot"></div>
     AI Online
   </div>
-  <button onclick="enableManualMode()" style="margin-left:12px;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--muted)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">✏️ Fill Out Manually</button>
+  <button onclick="enableManualMode()" style="margin-left:auto;background:transparent;color:var(--muted);border:1px solid var(--border);border-radius:8px;padding:7px 14px;font-family:'DM Sans',sans-serif;font-size:12px;cursor:pointer;transition:all .2s;white-space:nowrap;" onmouseover="this.style.color='var(--text)';this.style.borderColor='var(--muted)'" onmouseout="this.style.color='var(--muted)';this.style.borderColor='var(--border)'">✏️ <span class="btn-label-full">Fill Out Manually</span><span class="btn-label-short" style="display:none">Manual</span></button>
   <button id="logoutBtn" onclick="doLogout()" title="Sign out">Sign out</button>
 </header>
 
@@ -679,14 +714,17 @@
     </div>
 
     <div class="recipients-panel" id="recipientsPanel" style="display:none">
-      <div class="recipients-label">
+      <div class="recipients-label" id="recipientsToggle" onclick="toggleRecipients()" style="cursor:pointer;user-select:none;">
         Will be sent to
         <span class="testing-badge" id="testingBadge" style="display:none">Testing mode — only you</span>
+        <span id="recipientsChevron" style="margin-left:auto;font-size:11px;transition:transform .2s;">▼</span>
       </div>
-      <div class="recipients-chips" id="recipientsChips"></div>
-      <div class="add-email-row">
-        <input class="add-email-input" id="addEmailInput" type="email" placeholder="Add another email address…" onkeydown="if(event.key==='Enter'){event.preventDefault();addExtraEmail();}">
-        <button class="add-email-btn" onclick="addExtraEmail()">+ Add</button>
+      <div id="recipientsBody">
+        <div class="recipients-chips" id="recipientsChips"></div>
+        <div class="add-email-row">
+          <input class="add-email-input" id="addEmailInput" type="email" placeholder="Add another email address…" onkeydown="if(event.key==='Enter'){event.preventDefault();addExtraEmail();}">
+          <button class="add-email-btn" onclick="addExtraEmail()">+ Add</button>
+        </div>
       </div>
     </div>
 
@@ -755,7 +793,19 @@
 
   function showRecipientsPanel() {
     document.getElementById("recipientsPanel").style.display = "";
+    // Collapse by default on mobile
+    if (window.innerWidth <= 768) {
+      document.getElementById("recipientsBody").classList.add("collapsed");
+      document.getElementById("recipientsChevron").classList.add("collapsed");
+    }
     loadRecipients();
+  }
+
+  function toggleRecipients() {
+    const body    = document.getElementById("recipientsBody");
+    const chevron = document.getElementById("recipientsChevron");
+    body.classList.toggle("collapsed");
+    chevron.classList.toggle("collapsed");
   }
 
   function hideRecipientsPanel() {
@@ -1579,6 +1629,7 @@
     document.getElementById('reportTypeModal').classList.add('hidden');
     document.querySelector('.chat-panel').style.display = 'none';
     document.querySelector('.main').style.gridTemplateColumns = '1fr';
+    document.querySelector('.main').classList.add('form-only');
     document.getElementById('formPlaceholder').style.display = 'none';
     document.getElementById('formFooter').style.display = 'flex';
     document.getElementById('progressFill').style.width = '100%';
