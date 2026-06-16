@@ -36,42 +36,72 @@ EMPTY_STATE_EMPLOYEE = {
 
 
 # ── Claude call ──────────────────────────────────────────────────
+_cached_model = None
+
+def _get_best_model():
+    """Fetch available models from Anthropic and return the latest Sonnet."""
+    global _cached_model
+    if _cached_model:
+        return _cached_model
+    try:
+        r = requests.get(
+            "https://api.anthropic.com/v1/models",
+            headers={"x-api-key": ANTHROPIC_API_KEY, "anthropic-version": "2023-06-01"},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            models = [m["id"] for m in r.json().get("data", []) if "sonnet" in m["id"].lower()]
+            if models:
+                _cached_model = sorted(models)[-1]  # lexicographic sort picks latest date suffix
+                return _cached_model
+    except Exception:
+        pass
+    _cached_model = "claude-sonnet-4-5"  # fallback if API unreachable
+    return _cached_model
+
+
 def call_claude(system_prompt, messages, max_tokens=1024, _retries=3):
     last_error = None
+    model = _get_best_model()
     for attempt in range(_retries):
-        try:
-            response = requests.post(
-                "https://api.anthropic.com/v1/messages",
-                headers={
-                    "x-api-key": ANTHROPIC_API_KEY,
-                    "anthropic-version": "2023-06-01",
-                    "content-type": "application/json",
-                },
-                json={
-                    "model": "claude-sonnet-4-20250514",
-                    "max_tokens": max_tokens,
-                    "system": system_prompt,
-                    "messages": messages,
-                },
-                timeout=60,
-            )
-            # Retry on overload/server errors
-            if response.status_code in (429, 529, 500, 502, 503, 504):
-                last_error = f"Claude API error {response.status_code}: {response.text}"
+            try:
+                response = requests.post(
+                    "https://api.anthropic.com/v1/messages",
+                    headers={
+                        "x-api-key": ANTHROPIC_API_KEY,
+                        "anthropic-version": "2023-06-01",
+                        "content-type": "application/json",
+                    },
+                    json={
+                        "model": model,
+                        "max_tokens": max_tokens,
+                        "system": system_prompt,
+                        "messages": messages,
+                    },
+                    timeout=60,
+                )
+                # Model not found — clear cache and fail so next call re-fetches
+                if response.status_code == 404:
+                    global _cached_model
+                    _cached_model = None
+                    raise Exception(f"Model {model} not found — will re-detect on next request")
+                # Transient errors — retry same model with backoff
+                if response.status_code in (429, 529, 500, 502, 503, 504):
+                    last_error = f"Claude API error {response.status_code}"
+                    time.sleep(2 ** attempt)
+                    continue
+                if response.status_code != 200:
+                    raise Exception(f"Claude API error: {response.text}")
+                text = response.json()["content"][0]["text"]
+                if not text or not text.strip():
+                    last_error = "Empty response"
+                    time.sleep(2 ** attempt)
+                    continue
+                return text
+            except requests.exceptions.Timeout:
+                last_error = f"{model} timed out"
                 time.sleep(2 ** attempt)
                 continue
-            if response.status_code != 200:
-                raise Exception(f"Claude API error: {response.text}")
-            text = response.json()["content"][0]["text"]
-            if not text or not text.strip():
-                last_error = "Claude API returned empty response"
-                time.sleep(2 ** attempt)
-                continue
-            return text
-        except requests.exceptions.Timeout:
-            last_error = "Claude API request timed out"
-            time.sleep(2 ** attempt)
-            continue
     raise Exception(f"Claude API failed after {_retries} attempts: {last_error}")
 
 
@@ -101,6 +131,16 @@ def fmt_convo(conversation):
         role = "User" if msg["role"] == "user" else "Assistant"
         lines.append(f"{role}: {msg['content']}")
     return "\n".join(lines)
+
+
+def _fmt_skipped(skipped):
+    if not skipped:
+        return ""
+    lines = "\n".join(f"- {q}" for q in skipped)
+    return (
+        f"\n\nSKIPPED QUESTIONS — the user already said they don't know or it's not applicable. "
+        f"NEVER ask about any of these again under any circumstances:\n{lines}\n"
+    )
 
 
 # ════════════════════════════════════════════════════════════════
@@ -156,7 +196,7 @@ Don't drop details."""
 # ════════════════════════════════════════════════════════════════
 # PHASE 2 — Story completion
 # ════════════════════════════════════════════════════════════════
-def phase2_check(state, conversation):
+def phase2_check(state, conversation, skipped=None):
     today = datetime.now().strftime("%A, %B %d, %Y")
     system = f"""Today is {today}.
  
@@ -182,7 +222,7 @@ Do NOT ask about date or time under any circumstances — that is handled in a s
 Don't drop details.
 
 CRITICAL — NO REPEATED QUESTIONS: Before asking anything, carefully read the full conversation above. If a question has already been asked and answered — even if the answer was partial, "I don't know", or a variation — do NOT ask it again. Accept what was given and move on.
-
+{_fmt_skipped(skipped)}
 If anything from the list above is missing, pick the SINGLE most important missing piece and ask ONE question about it only.
 No "and", no two-part questions.
 CRITICAL: If the user has already answered a question — even with "I don't know", "the client didn't specify", "all of the above", or any variation — accept that answer and move on.
@@ -244,7 +284,7 @@ RULES:
 # ════════════════════════════════════════════════════════════════
 # PHASE 3 — When (date and time)
 # ════════════════════════════════════════════════════════════════
-def phase3_check(state, conversation):
+def phase3_check(state, conversation, skipped=None):
     today = datetime.now().strftime("%A, %B %d, %Y")
     current_when = state.get("when", "")
 
@@ -265,8 +305,8 @@ A complete "when" requires ALL of:
 YEAR RULE: If no year is mentioned, assume the current year unless that date is in the future, in which case assume the previous year. Never ask for the year.
 
 If any piece is still missing or ambiguous, ask ONE focused question to resolve it.
-CRITICAL: If the user has already stated they don't know the date or time, or that it was not specified, accept that and mark it as done using whatever information is available
-
+CRITICAL: If the user has already stated they don't know the date or time, or that it was not specified, accept that and mark it as done using whatever information is available.
+{_fmt_skipped(skipped)}
 Return ONLY valid JSON — no markdown, no explanation:
 - If still incomplete: {{"done": false, "question": "your question"}}
 - If complete: {{"done": true, "when": "formatted full datetime string e.g. May 14, 2026 at 7:00 AM"}}"""
@@ -278,7 +318,7 @@ Return ONLY valid JSON — no markdown, no explanation:
 # ════════════════════════════════════════════════════════════════
 # PHASE 4 — People (names and titles)
 # ════════════════════════════════════════════════════════════════
-def phase4_check(state, conversation):
+def phase4_check(state, conversation, skipped=None):
     today = datetime.now().strftime("%A, %B %d, %Y")
 
     all_text = " ".join([
@@ -310,7 +350,7 @@ This includes the REPORTER — the person who submitted this report. If their na
 - Never guess a title — only use what was explicitly stated
 
 CRITICAL — NO REPEATED QUESTIONS: Read the full conversation above before asking anything. If a name or title has already been asked about and answered — even partially — do NOT ask again. Accept what was given.
-
+{_fmt_skipped(skipped)}
 NAME BEFORE PLACEHOLDER: If anyone is currently listed as "Male Subject 1", "Female Subject 1", or similar, ask if the reporter knows their actual name BEFORE accepting the placeholder. Only keep the placeholder if the reporter confirms they don't know.
 
 OBVIOUS TITLES: Do not ask for the title/role of someone whose role is already self-evident from how they were described — "police", "police officer", "resident", "nurse", "security guard", "security officer" are their own titles. Only ask if the role is genuinely unclear.
@@ -420,7 +460,7 @@ Return ONLY valid JSON — no markdown, no explanation:
 # EMPLOYEE OCCURRENCE REPORT — Phase functions
 # ════════════════════════════════════════════════════════════════
 
-def emp_phase2_check(state, conversation):
+def emp_phase2_check(state, conversation, skipped=None):
     today = datetime.now().strftime("%A, %B %d, %Y")
     system = f"""Today is {today}.
 
@@ -445,10 +485,9 @@ VIOLATION CATEGORY — identify from the story if obvious. If unclear, ask. Opti
 
 CRITICAL — NO REPEATED QUESTIONS: If already answered (even partially or with "I don't know"), accept and move on.
 Ask ONE question at a time.
-
+{_fmt_skipped(skipped)}
 Do NOT ask about date/time — handled separately.
 Do NOT ask for full names — handled separately.
-CRITICAL — NO REPEATED QUESTIONS: If already answered (even partially or with "I don't know"), accept and move on.
 
 If anything is missing, ask ONE focused question.
 
@@ -495,7 +534,7 @@ RULES:
     return parse_json(raw)
 
 
-def emp_phase4_check(state, conversation):
+def emp_phase4_check(state, conversation, skipped=None):
     today = datetime.now().strftime("%A, %B %d, %Y")
     system = f"""Today is {today}.
 
@@ -520,7 +559,7 @@ FULL NAME RULE: A single name like "Jason" or "Maria" is NOT complete — always
 CRITICAL — NO REPEATED QUESTIONS: If already asked and answered (even partially), accept and move on.
 OBVIOUS TITLES: Don't ask for titles that are self-evident (security guard, security officer, supervisor).
 If the user said "I don't know the last name", accept it and move on.
-
+{_fmt_skipped(skipped)}
 If anyone is still missing name or title, ask ONE specific question.
 
 Return ONLY valid JSON:
