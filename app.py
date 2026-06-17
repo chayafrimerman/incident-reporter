@@ -1143,6 +1143,15 @@ def _upload_pdf_report(pdf_bytes, filename):
 
 
 
+@app.route("/api/log", methods=["POST"])
+def client_log():
+    data   = request.get_json(silent=True) or {}
+    event  = data.get("event", "unknown")
+    detail = data.get("detail", "")
+    log.info("CLIENT   %s — %s", event, detail)
+    return jsonify({"ok": True})
+
+
 @app.route("/robots.txt")
 def robots():
     return send_from_directory("static", "robots.txt")

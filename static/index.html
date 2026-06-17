@@ -1349,6 +1349,7 @@
     data.Name_Of_Supervisor = supervisor;
     data.extra_recipients   = [...extraRecipients];
 
+    _clientLog("SUBMIT", "submitted incident report");
     btn.disabled = true;
     btn.innerHTML = "<span>Submitting...</span>";
 
@@ -1409,6 +1410,7 @@
     data.report_type        = "employee_occurrence";
     data.extra_recipients   = [...extraRecipients];
 
+    _clientLog("SUBMIT", "submitted employee occurrence report");
     btn.disabled = true;
     btn.innerHTML = "<span>Submitting...</span>";
 
@@ -1620,7 +1622,16 @@
     return result;
   }
 
+  function _clientLog(event, detail) {
+    fetch(`${API_BASE}/api/log`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ event, detail })
+    }).catch(() => {});
+  }
+
   function enableManualMode() {
+    _clientLog("MANUAL_START", "user clicked Fill Out Manually");
     // Show the report type picker modal
     document.getElementById('reportTypeModal').classList.remove('hidden');
   }
@@ -1638,6 +1649,7 @@
   }
 
   function enableManualIncident() {
+    _clientLog("MANUAL_FORM", "selected incident report form");
     currentReportType = 'incident';
     _activateManualLayout();
     document.getElementById('formPanelTitle').textContent = 'Incident Report Form';
@@ -1648,6 +1660,7 @@
   }
 
   function enableManualEmployee() {
+    _clientLog("MANUAL_FORM", "selected employee occurrence form");
     currentReportType = 'employee_occurrence';
     _activateManualLayout();
     document.getElementById('formPanelTitle').textContent = 'Employee Occurrence Report';
