@@ -1,8 +1,11 @@
 import json
 import time
+import logging
 import requests
 from datetime import datetime
 from credentials import ANTHROPIC_API_KEY
+
+log = logging.getLogger("utils")
 
 
 
@@ -52,11 +55,13 @@ def _get_best_model():
         if r.status_code == 200:
             models = [m["id"] for m in r.json().get("data", []) if "sonnet" in m["id"].lower()]
             if models:
-                _cached_model = sorted(models)[-1]  # lexicographic sort picks latest date suffix
+                _cached_model = sorted(models)[-1]
+                log.info("MODEL — selected %s from %d available sonnet models", _cached_model, len(models))
                 return _cached_model
-    except Exception:
-        pass
-    _cached_model = "claude-sonnet-4-5"  # fallback if API unreachable
+    except Exception as e:
+        log.warning("MODEL — could not fetch model list: %s", e)
+    _cached_model = "claude-sonnet-4-5"
+    log.warning("MODEL — falling back to %s", _cached_model)
     return _cached_model
 
 
@@ -84,10 +89,12 @@ def call_claude(system_prompt, messages, max_tokens=1024, _retries=3):
             # Model not found — clear cache so next call re-fetches the list
             if response.status_code == 404:
                 _cached_model = None
+                log.error("MODEL — %s not found, cache cleared for re-detection", model)
                 raise Exception(f"Model {model} not found — will re-detect on next request")
             # Transient errors — retry with backoff
             if response.status_code in (429, 529, 500, 502, 503, 504):
                 last_error = f"Claude API error {response.status_code}"
+                log.warning("API — status %s on attempt %d, retrying", response.status_code, attempt + 1)
                 time.sleep(2 ** attempt)
                 continue
             if response.status_code != 200:
@@ -100,8 +107,10 @@ def call_claude(system_prompt, messages, max_tokens=1024, _retries=3):
             return text
         except requests.exceptions.Timeout:
             last_error = f"{model} timed out"
+            log.warning("API — timeout on attempt %d", attempt + 1)
             time.sleep(2 ** attempt)
             continue
+    log.error("API — all %d attempts failed: %s", _retries, last_error)
     raise Exception(f"Claude API failed after {_retries} attempts: {last_error}")
 
 

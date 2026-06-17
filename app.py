@@ -51,13 +51,27 @@ import logging
 _log_path = Path(__file__).parent / "server.log"
 logging.basicConfig(
     level=logging.INFO,
-    format="%(asctime)s %(levelname)s %(message)s",
+    format="%(asctime)s %(levelname)-8s %(name)s — %(message)s",
     handlers=[
         logging.FileHandler(_log_path, encoding="utf-8"),
         logging.StreamHandler(),
     ],
 )
-log = logging.getLogger(__name__)
+log = logging.getLogger("app")
+
+# Log every request with method, path, status, and duration
+import time as _time
+from flask import g as _g
+
+@app.before_request
+def _before():
+    _g._start = _time.time()
+
+@app.after_request
+def _after(response):
+    duration = (_time.time() - _g._start) * 1000
+    log.info("REQUEST  %s %s → %s  (%.0fms)", request.method, request.path, response.status_code, duration)
+    return response
 
 # ── In-memory stores ─────────────────────────────────────────────
 # OTP store: { email: { "otp_hash": str, "expires": float } }
@@ -84,7 +98,7 @@ def _save_tokens(tokens):
     try:
         _TOKENS_FILE.write_text(json.dumps(tokens))
     except Exception as e:
-        print(f"[AUTH] Warning: could not save device tokens: {e}")
+        log.warning("AUTH — could not save device tokens: %s", e)
 
 _device_tokens = _load_tokens()
 
@@ -119,7 +133,7 @@ def _email_exists(email: str) -> bool:
         conn.close()
         return found
     except Exception as e:
-        print(f"[AUTH] DB error checking email: {e}")
+        log.error("AUTH — DB error checking email: %s", e)
         return False
 
 
@@ -194,10 +208,10 @@ def auth_request_otp():
     try:
         _send_otp_email(email, otp)
     except Exception as e:
-        print(f"[AUTH] Failed to send OTP email to {email}: {e}")
+        log.error("AUTH — failed to send OTP email to %s: %s", email, e)
         return jsonify({"error": "Failed to send email. Please try again."}), 500
 
-    print(f"[AUTH] OTP sent to {email}")
+    log.info("LOGIN — OTP requested by %s", email)
     return jsonify({"ok": True})
 
 
@@ -241,7 +255,7 @@ def auth_verify_otp():
         samesite="Lax",
         secure = True,
     )
-    print(f"[AUTH] Verified OTP for {email}, device token issued.")
+    log.info("LOGIN — %s signed in successfully", email)
     return resp
 
 
@@ -299,7 +313,7 @@ def save_conversation(sid, state, conversation, final_report=None):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
-    print(f"[LOG] Conversation saved to {filename}")
+    log.info("CONV — saved to %s", filename)
 
 
 _DISMISSIVE_PHRASES = [
@@ -373,7 +387,7 @@ def dropdown_addresses():
         conn.close()
         return jsonify(names)
     except Exception as e:
-        print("DB error (dropdown addresses):", e)
+        log.error("DB error (dropdown addresses): %s", e)
         return jsonify([]), 500
 
 
@@ -393,7 +407,7 @@ def dropdown_customers():
         conn.close()
         return jsonify(parents)
     except Exception as e:
-        print("DB error (dropdown customers):", e)
+        log.error("DB error (dropdown customers): %s", e)
         return jsonify([]), 500
 
 
@@ -407,7 +421,7 @@ def dropdown_employees():
         conn.close()
         return jsonify(names)
     except Exception as e:
-        print("DB error (dropdown employees):", e)
+        log.error("DB error (dropdown employees): %s", e)
         return jsonify([]), 500
 
 
@@ -429,7 +443,7 @@ def chat():
     sid  = get_session_id()
     sess = get_or_create_session(sid)
     sess["sid"] = sid
-    print(f"[SESSION] sid={sid[:8]}... phase={sess['phase']} turns={len(sess['conversation'])}")
+    log.info("CHAT     sid=%s phase=%s turn=%s", sid[:8], sess['phase'], len(sess['conversation']) + 1)
 
     state        = sess["state"]
     conversation = sess["conversation"]
@@ -448,10 +462,15 @@ def chat():
     try:
         if phase == 1:
             conversation.append({"role": "user", "content": latest_user_msg})
+            log.info("USER     sid=%s said: %s", sid[:8], latest_user_msg[:120])
 
             extracted = phase1_extract(latest_user_msg)
             report_type = extracted.pop("report_type", "incident")
             multi = extracted.pop("multi_incident", "")
+            log.info("CLASSIFY sid=%s → %s | where=%s | who=%s",
+                     sid[:8], report_type,
+                     extracted.get("where", "")[:60] or "(unknown)",
+                     [p.get("name","?") for p in extracted.get("who", [])])
 
             sess["report_type"] = report_type
             if report_type == "employee_occurrence":
@@ -483,7 +502,11 @@ def chat():
             return resp
 
         conversation.append({"role": "user", "content": latest_user_msg})
+        log.info("USER     sid=%s said: %s", sid[:8], latest_user_msg[:120])
         _track_skipped(sess, latest_user_msg)
+        if _is_dismissive(latest_user_msg):
+            last_q = next((m["content"] for m in reversed(conversation[:-1]) if m["role"] == "assistant"), "")
+            log.info("SKIP     sid=%s skipped: %s", sid[:8], last_q[:80])
 
         if sess.get("_pending_multi"):
             multi = sess.pop("_pending_multi")
@@ -576,6 +599,7 @@ def _advance_phase2(sess):
 
     q = check.get("question", "Can you tell me more about what happened?")
     conversation.append({"role": "assistant", "content": q})
+    log.info("ASK      sid=%s (phase 2) asked: %s", sess.get("sid","")[:8], q[:100])
     return q
 
 
@@ -596,6 +620,7 @@ def _advance_phase3(sess):
         if check.get("when"):
             state["when"] = check["when"]
             sess["state"] = state
+        log.info("PHASE    sid=%s date/time confirmed: %s", sess.get("sid","")[:8], state.get("when","(none)"))
         sess["phase"] = 4
         return _advance_phase4(sess)
 
@@ -604,6 +629,7 @@ def _advance_phase3(sess):
                  else "What was the exact date and time of the incident?")
     q = check.get("question", default_q)
     conversation.append({"role": "assistant", "content": q})
+    log.info("ASK      sid=%s (phase 3) asked: %s", sess.get("sid","")[:8], q[:100])
     return q
 
 
@@ -630,19 +656,29 @@ def _advance_phase4(sess):
 
     q = check.get("question", "Can you confirm who was involved?")
     conversation.append({"role": "assistant", "content": q})
+    log.info("ASK      sid=%s (phase 4) asked: %s", sess.get("sid","")[:8], q[:100])
     return q
 
 
 def _generate_report(sess):
     sess["phase"] = 5
+    sid = sess.get("sid", "unknown")
     report_type = sess.get("report_type", "incident")
+    state = sess["state"]
+    who_names = [p.get("name","?") for p in state.get("who", [])]
+    log.info("REPORT   sid=%s generating %s | who=%s | when=%s | where=%s",
+             sid[:8], report_type, who_names,
+             state.get("when","")[:40] or "(unknown)",
+             state.get("where","")[:60] or "(unknown)")
     if report_type == "employee_occurrence":
-        result = emp_finalize(sess["state"])
+        result = emp_finalize(state)
     else:
-        result = finalize(sess["state"])
+        result = finalize(state)
     result = review_and_patch(result, sess.get("conversation", []))
+    log.info("REPORT   sid=%s complete — type=%s turns=%s",
+             sid[:8], result.get("Incident_Type","?"), len(sess.get("conversation",[])))
     json_str = json.dumps(result, indent=2)
-    save_conversation(sess.get("sid", "unknown"), sess["state"], sess["conversation"], final_report=result)
+    save_conversation(sid, state, sess["conversation"], final_report=result)
     return f"Got it -- let me write that up for you.\n\nSTORY_READY\n```json\n{json_str}\n```"
 
 
@@ -723,7 +759,9 @@ def submit():
     if data.get("report_type") == "employee_occurrence":
         return _submit_employee_occurrence(data)
 
-    log.info("Incident submit -- keys: %s", list(data.keys()))
+    log.info("SUBMIT   incident | employee=%s | supervisor=%s | address=%s | type=%s",
+             data.get("Employee_name","?"), data.get("Name_Of_Supervisor","?"),
+             data.get("Job_Address","?"), data.get("Incident_Type","?"))
 
     sid = get_session_id()
 
@@ -993,8 +1031,9 @@ def _submit_employee_occurrence(data):
     photos    = data.get("photos", [])
     sid       = get_session_id()
 
-    log.info("Employee occurrence submit -- employee=%s photos=%d",
-             data.get("Employee_name", ""), len(photos))
+    log.info("SUBMIT   employee occurrence | employee=%s | supervisor=%s | action=%s | photos=%d",
+             data.get("Employee_name","?"), data.get("Name_Of_Supervisor","?"),
+             data.get("Action_Taken","?"), len(photos))
 
     # 1 -- Generate PDF + upload to get link
     pdf_link = ""
