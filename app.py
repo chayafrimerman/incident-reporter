@@ -302,6 +302,37 @@ def save_conversation(sid, state, conversation, final_report=None):
     print(f"[LOG] Conversation saved to {filename}")
 
 
+_DISMISSIVE_PHRASES = [
+    "don't know", "dont know", "i don't know", "i dont know",
+    "not sure", "no idea", "unknown", "n/a", "na", "not applicable",
+    "doesn't matter", "doesnt matter", "not relevant", "not available",
+    "not specified", "not provided", "idk", "no clue", "skip",
+    "doesn't apply", "doesnt apply", "not needed", "not important",
+]
+
+def _is_dismissive(text: str) -> bool:
+    t = text.strip().lower()
+    if t in {"n/a", "na", "idk", "skip", "no", "nope", "none"}:
+        return True
+    return any(phrase in t for phrase in _DISMISSIVE_PHRASES)
+
+
+def _track_skipped(sess, user_msg: str):
+    """If the user dismissed the last question, record it so it's never asked again."""
+    if not _is_dismissive(user_msg):
+        return
+    conversation = sess.get("conversation", [])
+    # Find the last assistant question
+    last_q = next(
+        (m["content"] for m in reversed(conversation) if m["role"] == "assistant"),
+        None,
+    )
+    if last_q:
+        skipped = sess.setdefault("skipped", [])
+        if last_q not in skipped:
+            skipped.append(last_q)
+
+
 def get_session_id():
     sid = request.cookies.get("incident_session")
     if not sid or sid not in _sessions:
@@ -392,7 +423,7 @@ def chat():
     if not ANTHROPIC_API_KEY:
         return jsonify({"error": "ANTHROPIC_API_KEY not set"}), 500
 
-    data     = request.json
+    data     = request.get_json(silent=True) or {}
     messages = data.get("messages", [])
 
     sid  = get_session_id()
@@ -409,100 +440,108 @@ def chat():
         resp.set_cookie("incident_session", sid, samesite="Lax", secure = True)
         return resp
 
+    if not messages or "content" not in messages[-1]:
+        return jsonify({"error": "Invalid request"}), 400
+
     latest_user_msg = messages[-1]["content"]
 
-    if phase == 1:
+    try:
+        if phase == 1:
+            conversation.append({"role": "user", "content": latest_user_msg})
+
+            extracted = phase1_extract(latest_user_msg)
+            report_type = extracted.pop("report_type", "incident")
+            multi = extracted.pop("multi_incident", "")
+
+            sess["report_type"] = report_type
+            if report_type == "employee_occurrence":
+                import copy
+                sess["state"] = copy.deepcopy(EMPTY_STATE_EMPLOYEE)
+                state = sess["state"]
+                for key in EMPTY_STATE_EMPLOYEE:
+                    if key in extracted and extracted[key] not in ("", [], None):
+                        state[key] = extracted[key]
+                if extracted.get("what") and not state.get("reason_for_action"):
+                    state["reason_for_action"] = extracted["what"]
+            else:
+                for key in EMPTY_STATE:
+                    if key in extracted and extracted[key] not in ("", [], None):
+                        state[key] = extracted[key]
+
+            sess["phase"] = 2
+
+            if report_type == "incident" and multi and not state.get("multi_incident_handled"):
+                q = f"You mentioned a prior incident: \"{multi}\" -- was a report already filed for that?"
+                conversation.append({"role": "assistant", "content": q})
+                sess["_pending_multi"] = multi
+                reply = q
+            else:
+                reply = _advance_phase2(sess)
+
+            resp = jsonify({"reply": reply})
+            resp.set_cookie("incident_session", sid, samesite="Lax")
+            return resp
+
         conversation.append({"role": "user", "content": latest_user_msg})
+        _track_skipped(sess, latest_user_msg)
 
-        extracted = phase1_extract(latest_user_msg)
-        report_type = extracted.pop("report_type", "incident")
-        multi = extracted.pop("multi_incident", "")
+        if sess.get("_pending_multi"):
+            multi = sess.pop("_pending_multi")
+            lower = latest_user_msg.lower()
+            if any(w in lower for w in ["yes", "already", "filed", "done", "yep", "yeah"]):
+                state["previous_incidents"] = ""
+            else:
+                state["previous_incidents"] = f"Undocumented prior incident: {multi}"
+            state["multi_incident_handled"] = True
 
-        # Set session report type and re-initialize state if employee occurrence
-        sess["report_type"] = report_type
-        if report_type == "employee_occurrence":
-            import copy
-            sess["state"] = copy.deepcopy(EMPTY_STATE_EMPLOYEE)
-            state = sess["state"]
-            for key in EMPTY_STATE_EMPLOYEE:
-                if key in extracted and extracted[key] not in ("", [], None):
-                    state[key] = extracted[key]
-            # "what" from phase1 seeds reason_for_action
-            if extracted.get("what") and not state.get("reason_for_action"):
-                state["reason_for_action"] = extracted["what"]
-        else:
-            for key in EMPTY_STATE:
-                if key in extracted and extracted[key] not in ("", [], None):
-                    state[key] = extracted[key]
-
-        sess["phase"] = 2
-
-        # multi_incident check only applies to incident reports
-        if report_type == "incident" and multi and not state.get("multi_incident_handled"):
-            q = f"You mentioned a prior incident: \"{multi}\" -- was a report already filed for that?"
-            conversation.append({"role": "assistant", "content": q})
-            sess["_pending_multi"] = multi
-            reply = q
-        else:
+        if phase == 2:
             reply = _advance_phase2(sess)
+        elif phase == 3:
+            reply = _advance_phase3(sess)
+        elif phase == 4:
+            reply = _advance_phase4(sess)
+        elif phase == 5:
+            import copy
+            _sessions[sid] = {
+                "state":        copy.deepcopy(EMPTY_STATE),
+                "conversation": [],
+                "phase":        1,
+                "report_type":  None,
+                "phase2_turns": 0,
+                "phase3_turns": 0,
+                "phase4_turns": 0,
+            }
+            sess = _sessions[sid]
+            sess["conversation"].append({"role": "user", "content": latest_user_msg})
+            extracted = phase1_extract(latest_user_msg)
+            report_type = extracted.pop("report_type", "incident")
+            extracted.pop("multi_incident", "")
+            sess["report_type"] = report_type
+            if report_type == "employee_occurrence":
+                sess["state"] = copy.deepcopy(EMPTY_STATE_EMPLOYEE)
+                for key in EMPTY_STATE_EMPLOYEE:
+                    if key in extracted and extracted[key] not in ("", [], None):
+                        sess["state"][key] = extracted[key]
+                if extracted.get("what") and not sess["state"].get("reason_for_action"):
+                    sess["state"]["reason_for_action"] = extracted["what"]
+            else:
+                for key in EMPTY_STATE:
+                    if key in extracted and extracted[key] not in ("", [], None):
+                        sess["state"][key] = extracted[key]
+            sess["phase"] = 2
+            reply = _advance_phase2(sess)
+        else:
+            reply = "Something went wrong. Please refresh and start over."
 
         resp = jsonify({"reply": reply})
-        resp.set_cookie("incident_session", sid, samesite="Lax")
+        resp.set_cookie("incident_session", sid, samesite="Lax", secure=True)
         return resp
 
-    conversation.append({"role": "user", "content": latest_user_msg})
-
-    if sess.get("_pending_multi"):
-        multi = sess.pop("_pending_multi")
-        lower = latest_user_msg.lower()
-        if any(w in lower for w in ["yes", "already", "filed", "done", "yep", "yeah"]):
-            state["previous_incidents"] = ""
-        else:
-            state["previous_incidents"] = f"Undocumented prior incident: {multi}"
-        state["multi_incident_handled"] = True
-
-    if phase == 2:
-        reply = _advance_phase2(sess)
-    elif phase == 3:
-        reply = _advance_phase3(sess)
-    elif phase == 4:
-        reply = _advance_phase4(sess)
-    elif phase == 5:
-        import copy
-        _sessions[sid] = {
-            "state":        copy.deepcopy(EMPTY_STATE),
-            "conversation": [],
-            "phase":        1,
-            "report_type":  None,
-            "phase2_turns": 0,
-            "phase3_turns": 0,
-            "phase4_turns": 0,
-        }
-        sess = _sessions[sid]
-        sess["conversation"].append({"role": "user", "content": latest_user_msg})
-        extracted = phase1_extract(latest_user_msg)
-        report_type = extracted.pop("report_type", "incident")
-        extracted.pop("multi_incident", "")
-        sess["report_type"] = report_type
-        if report_type == "employee_occurrence":
-            sess["state"] = copy.deepcopy(EMPTY_STATE_EMPLOYEE)
-            for key in EMPTY_STATE_EMPLOYEE:
-                if key in extracted and extracted[key] not in ("", [], None):
-                    sess["state"][key] = extracted[key]
-            if extracted.get("what") and not sess["state"].get("reason_for_action"):
-                sess["state"]["reason_for_action"] = extracted["what"]
-        else:
-            for key in EMPTY_STATE:
-                if key in extracted and extracted[key] not in ("", [], None):
-                    sess["state"][key] = extracted[key]
-        sess["phase"] = 2
-        reply = _advance_phase2(sess)
-    else:
-        reply = "Something went wrong. Please refresh and start over."
-
-    resp = jsonify({"reply": reply})
-    resp.set_cookie("incident_session", sid, samesite="Lax", secure = True)
-    return resp
+    except Exception as e:
+        log.error("Unhandled error in /api/chat: %s", e, exc_info=True)
+        resp = jsonify({"reply": "Something went wrong on my end — please try sending your message again."})
+        resp.set_cookie("incident_session", sid, samesite="Lax", secure=True)
+        return resp
 
 
 # ── Phase helpers ────────────────────────────────────────────────
@@ -511,6 +550,7 @@ def _advance_phase2(sess):
     state        = sess["state"]
     conversation = sess["conversation"]
     report_type  = sess.get("report_type", "incident")
+    skipped      = sess.get("skipped", [])
 
     sess["phase2_turns"] = sess.get("phase2_turns", 0) + 1
     if sess["phase2_turns"] > 12:
@@ -522,9 +562,9 @@ def _advance_phase2(sess):
         return _advance_phase3(sess)
 
     if report_type == "employee_occurrence":
-        check = emp_phase2_check(state, conversation)
+        check = emp_phase2_check(state, conversation, skipped=skipped)
     else:
-        check = phase2_check(state, conversation)
+        check = phase2_check(state, conversation, skipped=skipped)
 
     if check.get("done"):
         if report_type == "employee_occurrence":
@@ -543,13 +583,14 @@ def _advance_phase3(sess):
     state        = sess["state"]
     conversation = sess["conversation"]
     report_type  = sess.get("report_type", "incident")
+    skipped      = sess.get("skipped", [])
 
     sess["phase3_turns"] = sess.get("phase3_turns", 0) + 1
     if sess["phase3_turns"] > 8:
         sess["phase"] = 4
         return _advance_phase4(sess)
 
-    check = phase3_check(state, conversation)
+    check = phase3_check(state, conversation, skipped=skipped)
 
     if check.get("done"):
         if check.get("when"):
@@ -570,6 +611,7 @@ def _advance_phase4(sess):
     state        = sess["state"]
     conversation = sess["conversation"]
     report_type  = sess.get("report_type", "incident")
+    skipped      = sess.get("skipped", [])
 
     sess["state"]["who"] = phase4_update_who(state, conversation)
     state = sess["state"]
@@ -579,9 +621,9 @@ def _advance_phase4(sess):
         return _generate_report(sess)
 
     if report_type == "employee_occurrence":
-        check = emp_phase4_check(state, conversation)
+        check = emp_phase4_check(state, conversation, skipped=skipped)
     else:
-        check = phase4_check(state, conversation)
+        check = phase4_check(state, conversation, skipped=skipped)
 
     if check.get("done"):
         return _generate_report(sess)
@@ -752,6 +794,7 @@ _INCIDENT_BASE = [
     "aharon@opusoperations.com",
     "thomas@opusoperations.com",
     "jasonw@opusoperations.com",
+    "chayaf@opusoperations.com"
 ]
 _SUPERVISOR_EXTRAS = {
     "stacy nunez":  ["stacyn@opusoperations.com"],
@@ -765,6 +808,7 @@ _EMPLOYEE_OCCURRENCE_BASE = [
     "thomas@opusoperations.com",
     "jasonw@opusoperations.com",
     "carlosc@opusoperations.com",
+    "chayaf@opusoperations.com"
 ]
 
 def _incident_recipients(supervisor: str) -> list:

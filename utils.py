@@ -61,47 +61,47 @@ def _get_best_model():
 
 
 def call_claude(system_prompt, messages, max_tokens=1024, _retries=3):
+    global _cached_model
     last_error = None
     model = _get_best_model()
     for attempt in range(_retries):
-            try:
-                response = requests.post(
-                    "https://api.anthropic.com/v1/messages",
-                    headers={
-                        "x-api-key": ANTHROPIC_API_KEY,
-                        "anthropic-version": "2023-06-01",
-                        "content-type": "application/json",
-                    },
-                    json={
-                        "model": model,
-                        "max_tokens": max_tokens,
-                        "system": system_prompt,
-                        "messages": messages,
-                    },
-                    timeout=60,
-                )
-                # Model not found — clear cache and fail so next call re-fetches
-                if response.status_code == 404:
-                    global _cached_model
-                    _cached_model = None
-                    raise Exception(f"Model {model} not found — will re-detect on next request")
-                # Transient errors — retry same model with backoff
-                if response.status_code in (429, 529, 500, 502, 503, 504):
-                    last_error = f"Claude API error {response.status_code}"
-                    time.sleep(2 ** attempt)
-                    continue
-                if response.status_code != 200:
-                    raise Exception(f"Claude API error: {response.text}")
-                text = response.json()["content"][0]["text"]
-                if not text or not text.strip():
-                    last_error = "Empty response"
-                    time.sleep(2 ** attempt)
-                    continue
-                return text
-            except requests.exceptions.Timeout:
-                last_error = f"{model} timed out"
+        try:
+            response = requests.post(
+                "https://api.anthropic.com/v1/messages",
+                headers={
+                    "x-api-key": ANTHROPIC_API_KEY,
+                    "anthropic-version": "2023-06-01",
+                    "content-type": "application/json",
+                },
+                json={
+                    "model": model,
+                    "max_tokens": max_tokens,
+                    "system": system_prompt,
+                    "messages": messages,
+                },
+                timeout=60,
+            )
+            # Model not found — clear cache so next call re-fetches the list
+            if response.status_code == 404:
+                _cached_model = None
+                raise Exception(f"Model {model} not found — will re-detect on next request")
+            # Transient errors — retry with backoff
+            if response.status_code in (429, 529, 500, 502, 503, 504):
+                last_error = f"Claude API error {response.status_code}"
                 time.sleep(2 ** attempt)
                 continue
+            if response.status_code != 200:
+                raise Exception(f"Claude API error: {response.text}")
+            text = response.json()["content"][0]["text"]
+            if not text or not text.strip():
+                last_error = "Empty response"
+                time.sleep(2 ** attempt)
+                continue
+            return text
+        except requests.exceptions.Timeout:
+            last_error = f"{model} timed out"
+            time.sleep(2 ** attempt)
+            continue
     raise Exception(f"Claude API failed after {_retries} attempts: {last_error}")
 
 
@@ -120,9 +120,9 @@ def parse_json(raw):
                 break
     start = clean.find("{")
     end = clean.rfind("}") + 1
-    if start != -1 and end > start:
-        clean = clean[start:end]
-    return json.loads(clean)
+    if start == -1 or end <= start:
+        raise ValueError(f"No JSON object found in response: {raw[:200]}")
+    return json.loads(clean[start:end])
 
 
 def fmt_convo(conversation):
@@ -399,21 +399,24 @@ RULES:
 - Never guess a title — leave as "" if not explicitly stated."""
 
     raw = call_claude(system, [{"role": "user", "content": "Compile who array."}], max_tokens=600)
-    clean = raw.strip()
-    if "```" in clean:
-        parts = clean.split("```")
-        for part in parts:
-            if part.startswith("json"):
-                clean = part[4:].strip()
-                break
-            elif part.strip().startswith("["):
-                clean = part.strip()
-                break
-    start = clean.find("[")
-    end = clean.rfind("]") + 1
-    if start != -1 and end > start:
-        clean = clean[start:end]
-    return json.loads(clean)
+    try:
+        clean = raw.strip()
+        if "```" in clean:
+            parts = clean.split("```")
+            for part in parts:
+                if part.startswith("json"):
+                    clean = part[4:].strip()
+                    break
+                elif part.strip().startswith("["):
+                    clean = part.strip()
+                    break
+        start = clean.find("[")
+        end = clean.rfind("]") + 1
+        if start == -1 or end <= start:
+            return state.get("who", [])  # safe fallback — keep existing who
+        return json.loads(clean[start:end])
+    except Exception:
+        return state.get("who", [])  # safe fallback — keep existing who
 
 
 # ════════════════════════════════════════════════════════════════
