@@ -303,8 +303,10 @@ def save_conversation(sid, state, conversation, final_report=None):
     # conversations are always on disk even if the user never finishes.
     filename = log_dir / f"{sid[:8]}.json"
 
+    sess = _sessions.get(sid, {})
     payload = {
         "session_id": sid,
+        "user_email": sess.get("user_email", ""),
         "last_updated": datetime.now().isoformat(),
         "complete": final_report is not None,
         "final_state": state,
@@ -446,7 +448,16 @@ def chat():
     sid  = get_session_id()
     sess = get_or_create_session(sid)
     sess["sid"] = sid
-    log.info("CHAT     sid=%s phase=%s turn=%s", sid[:8], sess['phase'], len(sess['conversation']) + 1)
+
+    # Attach email to session from device_token cookie (once, on first turn)
+    if not sess.get("user_email"):
+        token = request.cookies.get("device_token")
+        record = _device_tokens.get(token) if token else None
+        if record:
+            sess["user_email"] = record.get("email", "")
+
+    log.info("CHAT     sid=%s user=%s phase=%s turn=%s",
+             sid[:8], sess.get("user_email", "?"), sess['phase'], len(sess['conversation']) + 1)
 
     state        = sess["state"]
     conversation = sess["conversation"]
