@@ -299,12 +299,14 @@ def save_conversation(sid, state, conversation, final_report=None):
     log_dir = Path(__file__).parent / "conversation_logs"
     log_dir.mkdir(exist_ok=True)
 
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    filename = log_dir / f"{timestamp}_{sid[:8]}.json"
+    # Stable filename per session — overwritten on every turn so partial
+    # conversations are always on disk even if the user never finishes.
+    filename = log_dir / f"{sid[:8]}.json"
 
     payload = {
         "session_id": sid,
-        "timestamp": datetime.now().isoformat(),
+        "last_updated": datetime.now().isoformat(),
+        "complete": final_report is not None,
         "final_state": state,
         "final_report": final_report,
         "conversation": conversation,
@@ -313,7 +315,8 @@ def save_conversation(sid, state, conversation, final_report=None):
     with open(filename, "w", encoding="utf-8") as f:
         json.dump(payload, f, indent=2, ensure_ascii=False)
 
-    log.info("CONV — saved to %s", filename)
+    log.info("CONV — saved to %s (%s turns, complete=%s)",
+             filename, len(conversation), payload["complete"])
 
 
 _DISMISSIVE_PHRASES = [
@@ -497,6 +500,7 @@ def chat():
             else:
                 reply = _advance_phase2(sess)
 
+            save_conversation(sid, sess["state"], sess["conversation"])
             resp = jsonify({"reply": reply})
             resp.set_cookie("incident_session", sid, samesite="Lax")
             return resp
@@ -556,8 +560,9 @@ def chat():
         else:
             reply = "Something went wrong. Please refresh and start over."
 
+        save_conversation(sid, sess["state"], sess["conversation"])
         resp = jsonify({"reply": reply})
-        resp.set_cookie("incident_session", sid, samesite="Lax", secure=True)
+        resp.set_cookie("incident_session", sid, samesite="Lax")
         return resp
 
     except Exception as e:
