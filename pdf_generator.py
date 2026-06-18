@@ -422,6 +422,72 @@ class _Form:
 
             self.y -= (LBL_H + img_area_h)
 
+    def embed_signatures(self, emp_sig_b64: str, sup_sig_b64: str,
+                          emp_name: str = "", sup_name: str = ""):
+        """Draw two signature boxes side-by-side at the bottom of the form."""
+        import base64 as _b
+
+        SIG_H   = 60    # height of the signature image area
+        LBL_ROW = 14    # height of the name/label row below the sig
+        BOX_H   = LBL_H + SIG_H + LBL_ROW + 8
+        self._need(BOX_H + 4)
+
+        # Section header
+        y = self.y
+        self.c.setFillColor(TEAL)
+        self.c.rect(ML, y - LBL_H, CW, LBL_H, fill=1, stroke=0)
+        self.c.setStrokeColor(BLACK)
+        self.c.setLineWidth(LW)
+        self.c.rect(ML, y - LBL_H, CW, LBL_H, fill=0, stroke=1)
+        self.c.setFillColor(WHITE)
+        self.c.setFont("Helvetica-Bold", LBL_FS)
+        self.c.drawString(ML + PAD_X, y - 11, "Signatures")
+        y -= LBL_H
+
+        half_w = CW / 2
+        for i, (sig_b64, person, title) in enumerate([
+            (emp_sig_b64, emp_name, "Employee"),
+            (sup_sig_b64, sup_name, "Supervisor"),
+        ]):
+            box_x = ML + i * half_w
+
+            # White sig box with border
+            self.c.setFillColor(WHITE)
+            self.c.rect(box_x, y - SIG_H, half_w, SIG_H, fill=1, stroke=0)
+            self.c.setStrokeColor(BLACK)
+            self.c.setLineWidth(LW)
+            self.c.rect(box_x, y - SIG_H, half_w, SIG_H, fill=0, stroke=1)
+
+            # Draw signature image if present
+            if sig_b64:
+                try:
+                    raw = sig_b64.split(",", 1)[-1]   # strip data:image/png;base64,
+                    img_buf = BytesIO(_b.b64decode(raw))
+                    ir = ImageReader(img_buf)
+                    iw, ih = ir.getSize()
+                    pad = 6
+                    scale = min((half_w - pad * 2) / iw, (SIG_H - pad * 2) / ih)
+                    dw, dh = iw * scale, ih * scale
+                    ix = box_x + (half_w - dw) / 2
+                    iy = y - SIG_H + (SIG_H - dh) / 2
+                    img_buf.seek(0)
+                    self.c.drawImage(ImageReader(img_buf), ix, iy, dw, dh, mask="auto")
+                except Exception:
+                    pass
+
+            # Label row: "Title — Name"
+            label_y = y - SIG_H - LBL_ROW
+            self.c.setFillColor(HexColor("#f0f0f0"))
+            self.c.rect(box_x, label_y, half_w, LBL_ROW, fill=1, stroke=0)
+            self.c.setStrokeColor(BLACK)
+            self.c.rect(box_x, label_y, half_w, LBL_ROW, fill=0, stroke=1)
+            self.c.setFillColor(BLACK)
+            self.c.setFont("Helvetica", 7)
+            label_text = f"{title}" + (f" — {person}" if person else "")
+            self.c.drawCentredString(box_x + half_w / 2, label_y + 3, label_text)
+
+        self.y = y - SIG_H - LBL_ROW - 4
+
     def footer(self):
         self.c.setStrokeColor(TEAL)
         self.c.setLineWidth(1)
@@ -598,5 +664,13 @@ def generate_employee_occurrence_pdf(data: dict) -> bytes:
     photos = data.get("photos", [])
     if photos:
         f.embed_photos(photos)
+    emp_sig = data.get("Employee_Signature", "")
+    sup_sig = data.get("Supervisor_Signature", "")
+    if emp_sig or sup_sig:
+        f.embed_signatures(
+            emp_sig, sup_sig,
+            emp_name=data.get("Employee_name", ""),
+            sup_name=data.get("Name_Of_Supervisor", ""),
+        )
     f.footer()
     return f.get_bytes()

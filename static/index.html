@@ -109,6 +109,18 @@
   #incidentForm.visible { display: block; animation: fadeUp .4s ease; }
 
   .form-section { margin-bottom: 28px; }
+
+  /* ── Signature pads ── */
+  .sig-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .sig-field { display: flex; flex-direction: column; gap: 6px; }
+  .sig-label { font-size: 12px; font-weight: 500; color: var(--text-secondary, #6b7280); }
+  .sig-canvas-wrap { position: relative; border: 1px solid var(--border); border-radius: 6px; background: #fff; cursor: crosshair; }
+  .sig-canvas { display: block; width: 100%; height: 140px; border-radius: 6px; touch-action: none; }
+  .sig-placeholder { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; color: #ccc; font-size: 13px; pointer-events: none; user-select: none; }
+  .sig-placeholder.hidden { display: none; }
+  .sig-clear-btn { align-self: flex-end; font-size: 11px; padding: 3px 10px; border: 1px solid var(--border); border-radius: 4px; background: transparent; color: var(--text-secondary, #6b7280); cursor: pointer; }
+  .sig-clear-btn:hover { background: var(--border); }
+  @media (max-width: 768px) { .sig-grid { grid-template-columns: 1fr; } }
   .section-label { font-size: 10px; font-weight: 600; letter-spacing: .12em; text-transform: uppercase; color: var(--accent); font-family: 'DM Mono', monospace; margin-bottom: 14px; padding-bottom: 8px; border-bottom: 1px solid var(--border); }
 
   .field-grid        { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
@@ -706,6 +718,32 @@
           </div>
         </div>
 
+        <!-- Signatures -->
+        <div class="form-section">
+          <div class="section-label">Signatures</div>
+          <div class="sig-grid">
+
+            <div class="sig-field">
+              <label class="sig-label">Employee Signature <span class="required">*</span></label>
+              <div class="sig-canvas-wrap">
+                <canvas id="emp_sig_canvas" class="sig-canvas"></canvas>
+                <span class="sig-placeholder">Sign here</span>
+              </div>
+              <button type="button" class="sig-clear-btn" onclick="clearSig('emp_sig_canvas')">Clear</button>
+            </div>
+
+            <div class="sig-field">
+              <label class="sig-label">Supervisor Signature <span class="required">*</span></label>
+              <div class="sig-canvas-wrap">
+                <canvas id="sup_sig_canvas" class="sig-canvas"></canvas>
+                <span class="sig-placeholder">Sign here</span>
+              </div>
+              <button type="button" class="sig-clear-btn" onclick="clearSig('sup_sig_canvas')">Clear</button>
+            </div>
+
+          </div>
+        </div>
+
         <!-- hidden field so submitForm knows the type -->
         <input type="hidden" name="report_type" value="employee_occurrence">
 
@@ -1243,6 +1281,7 @@
     document.getElementById("formPanelTitle").textContent = "Employee Occurrence Report";
     const form = document.getElementById("employeeForm");
     form.style.display = "block";
+    requestAnimationFrame(resizeSigCanvases);
 
     // Set communication date/time to now
     document.getElementById("emp_report_dt").value = nowLocal();
@@ -1405,10 +1444,18 @@
       data.photos = await filesToBase64(photoFiles);
     }
 
+    // Signatures
+    const empSig = getSigDataURL('emp_sig_canvas');
+    const supSig = getSigDataURL('sup_sig_canvas');
+    if (!empSig) { alert("Please have the employee sign before submitting."); return; }
+    if (!supSig) { alert("Please have the supervisor sign before submitting."); return; }
+
     data.Employee_name      = employee;
     data.Name_Of_Supervisor = supervisor;
     data.report_type        = "employee_occurrence";
     data.extra_recipients   = [...extraRecipients];
+    data.Employee_Signature  = empSig;
+    data.Supervisor_Signature = supSig;
 
     _clientLog("SUBMIT", "submitted employee occurrence report");
     btn.disabled = true;
@@ -1446,6 +1493,8 @@
       document.getElementById("employeeForm").reset();
       document.getElementById("emp_report_dt").value = nowLocal();
       document.getElementById("emp_prev_warnings_section").style.display = "none";
+      clearSig('emp_sig_canvas');
+      clearSig('sup_sig_canvas');
     } else {
       document.getElementById("incidentForm").reset();
       document.querySelector('#incidentForm [name="Date_Time_Of_Report"]').value = nowLocal();
@@ -1666,9 +1715,106 @@
     document.getElementById('formPanelTitle').textContent = 'Employee Occurrence Report';
     document.getElementById('employeeForm').style.display = 'block';
     document.getElementById('emp_report_dt').value = nowLocal();
+    requestAnimationFrame(resizeSigCanvases);
     // Remove AI badges since nothing is AI-filled
     document.querySelectorAll('#employeeForm .ai-badge').forEach(el => el.remove());
     document.querySelectorAll('#employeeForm .ai-filled').forEach(el => el.classList.remove('ai-filled'));
+  }
+
+  // ── Signature pad ────────────────────────────────────────────
+  const _sigPads = {};
+
+  function _setupSigCanvas(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas || _sigPads[canvasId]) return;
+    const placeholder = canvas.parentElement.querySelector('.sig-placeholder');
+    let drawing = false, lastX = 0, lastY = 0, sized = false;
+
+    function sizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      if (!rect.width) return;   // still hidden — skip
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width  = rect.width  * dpr;
+      canvas.height = rect.height * dpr;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(dpr, dpr);
+      sized = true;
+    }
+
+    function getPos(e) {
+      const rect = canvas.getBoundingClientRect();
+      const src  = e.touches ? e.touches[0] : e;
+      const dpr  = window.devicePixelRatio || 1;
+      // CSS pixels — ctx is already scaled by dpr via sizeCanvas
+      return [src.clientX - rect.left, src.clientY - rect.top];
+    }
+
+    function startDraw(e) {
+      e.preventDefault();
+      if (!sized) sizeCanvas();
+      drawing = true;
+      [lastX, lastY] = getPos(e);
+      if (placeholder) placeholder.classList.add('hidden');
+    }
+    function draw(e) {
+      if (!drawing) return;
+      e.preventDefault();
+      const ctx = canvas.getContext('2d');
+      const [x, y] = getPos(e);
+      ctx.beginPath();
+      ctx.moveTo(lastX, lastY);
+      ctx.lineTo(x, y);
+      ctx.strokeStyle = '#1a1a2e';
+      ctx.lineWidth = 2;
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.stroke();
+      [lastX, lastY] = [x, y];
+    }
+    function endDraw() { drawing = false; }
+
+    canvas.addEventListener('mousedown',  startDraw);
+    canvas.addEventListener('mousemove',  draw);
+    canvas.addEventListener('mouseup',    endDraw);
+    canvas.addEventListener('mouseleave', endDraw);
+    canvas.addEventListener('touchstart', startDraw, { passive: false });
+    canvas.addEventListener('touchmove',  draw,      { passive: false });
+    canvas.addEventListener('touchend',   endDraw);
+
+    _sigPads[canvasId] = { sizeCanvas };
+  }
+
+  // Call this whenever the employee form becomes visible
+  function resizeSigCanvases() {
+    ['emp_sig_canvas', 'sup_sig_canvas'].forEach(id => {
+      _setupSigCanvas(id);
+      if (_sigPads[id]) _sigPads[id].sizeCanvas();
+    });
+  }
+
+  // Set up event listeners now; actual sizing deferred until form is shown
+  document.addEventListener('DOMContentLoaded', () => {
+    _setupSigCanvas('emp_sig_canvas');
+    _setupSigCanvas('sup_sig_canvas');
+  });
+
+  function clearSig(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return;
+    const rect = canvas.getBoundingClientRect();
+    canvas.getContext('2d').clearRect(0, 0, canvas.width, canvas.height);
+    const placeholder = canvas.parentElement.querySelector('.sig-placeholder');
+    if (placeholder) placeholder.classList.remove('hidden');
+  }
+
+  function getSigDataURL(canvasId) {
+    const canvas = document.getElementById(canvasId);
+    if (!canvas) return null;
+    // Check if blank
+    const ctx   = canvas.getContext('2d');
+    const data  = ctx.getImageData(0, 0, canvas.width, canvas.height).data;
+    const blank = data.every(v => v === 0);
+    return blank ? null : canvas.toDataURL('image/png');
   }
 
   // Refresh recipient list whenever supervisor changes
