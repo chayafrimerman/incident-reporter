@@ -128,10 +128,12 @@ def parse_json(raw):
                 clean = part.strip()
                 break
     start = clean.find("{")
-    end = clean.rfind("}") + 1
-    if start == -1 or end <= start:
+    if start == -1:
         raise ValueError(f"No JSON object found in response: {raw[:200]}")
-    return json.loads(clean[start:end])
+    # Use raw_decode so we stop at the first complete object and ignore any trailing data
+    decoder = json.JSONDecoder()
+    obj, _ = decoder.raw_decode(clean, start)
+    return obj
 
 
 def fmt_convo(conversation):
@@ -491,6 +493,7 @@ We need ALL of these things:
 2. REASON FOR ACTION — what specifically the employee did that warranted this action. Must be specific, not vague.
 3. STANDARDS EXPECTED — TERMINATION EXCEPTION: First, scan both the CURRENT STATE and the full CONVERSATION above for any mention of "termination" or "terminated". If termination is mentioned anywhere — in the state OR in any user message — SKIP this field entirely. Do not ask about future expectations or standards for a terminated employee. Only ask about standards/expectations if the action is NOT a termination.
 4. EMPLOYEE'S REACTION — how the employee responded. Ask if not stated. Accept "no reaction" or "not applicable" if there was no direct interaction.
+5. TERMINATION DATE — ONLY if termination is the action taken and the termination date has not been confirmed: ask "Is the termination date today, {today}?" Accept yes/no. Skip entirely if this is not a termination.
 
 VIOLATION CATEGORY — identify from the story if obvious. If unclear, ask. Options:
    Time and Attendance | Job Performance | Professional Conduct | Harassment and Misconduct | Medical and Injury | Fraternization | Appearance
@@ -531,7 +534,8 @@ Return ONLY valid JSON — no markdown, no explanation:
   "reason_for_action": "",
   "standards_expected": "",
   "employee_reaction": "",
-  "violation_category": ""
+  "violation_category": "",
+  "termination_date": ""
 }}
 
 RULES:
@@ -540,6 +544,7 @@ RULES:
 - "standards_expected": what was communicated to the employee and what expectations or standards were set going forward
 - "employee_reaction": how the employee responded. Leave blank if no direct interaction.
 - "violation_category": "Time and Attendance" | "Job Performance" | "Professional Conduct" | "Harassment and Misconduct" | "Medical and Injury" | "Fraternization" | "Appearance"
+- "termination_date": only populate if action is termination. If user confirmed today, use today's date (YYYY-MM-DD). If user gave a different date, use that. Leave blank if not a termination.
 - "who": [{{"name": "...", "title": "..."}}] — include the employee being documented and the supervisor filing the report"""
 
     raw = call_claude(system, [{"role": "user", "content": "Extract state from conversation."}], max_tokens=900)
@@ -615,6 +620,7 @@ Return ONLY valid JSON — no markdown, no explanation:
   "Conversation_Summary_and_Expec": "Write in complete sentences. If the action taken is Termination: describe the termination conversation — what was communicated to the employee about the reason for termination, how and when they were notified, and any relevant details of that conversation. Do NOT write about future expectations or standards — the employee has been terminated. If the action is anything other than Termination: describe the full conversation with the employee, including what was communicated about the violation, what specific standards and expectations were set going forward, and any commitments or acknowledgments made.",
   "Employee_Reaction": "Write in complete sentences. Describe exactly how the employee responded — verbally, emotionally, or in writing. If there was no direct interaction, state that explicitly.",
   "Action_Taken_Suggested": "The action_taken value from state — used to pre-check the correct checkbox. E.g. 'Written Warning', 'Verbal Warning', 'Suspension', 'Termination', 'Counseling Session', 'Record of Discussion'.",
+  "Termination_Date": "If action is termination, the confirmed termination date as YYYY-MM-DD. Leave blank otherwise.",
   "Date_Time_Of_Occurrence": "YYYY-MM-DDTHH:MM:SS"
 }}"""
 

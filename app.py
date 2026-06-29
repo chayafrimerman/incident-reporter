@@ -20,7 +20,7 @@ from utils import (ANTHROPIC_API_KEY,
     emp_phase4_check, emp_finalize,
     EMPTY_STATE_EMPLOYEE, review_and_patch,
 )
-from credentials import get_db_conn, EMAIL, APP_PASSWORD
+from credentials import get_db_conn, EMAIL, APP_PASSWORD, TESTING_MODE
 from email.mime.application import MIMEApplication
 from pdf_generator import generate_incident_pdf, generate_employee_occurrence_pdf, generate_termination_pdf
 
@@ -712,8 +712,9 @@ def save_feedback():
     log_dir = Path(__file__).parent / "conversation_logs"
     log_dir.mkdir(exist_ok=True)
 
-    # Find the most recent conversation log for this session and add feedback to it
-    matches = sorted(log_dir.glob(f"*_{sid_prefix}.json"), reverse=True)
+    # Find the stable conversation log for this session and add feedback to it
+    stable = log_dir / f"{sid_prefix}.json"
+    matches = [stable] if stable.exists() else []
     if matches:
         existing_file = matches[0]
         try:
@@ -759,10 +760,19 @@ def reset_session():
 def email_recipients():
     report_type = request.args.get("report_type", "incident")
     supervisor  = request.args.get("supervisor", "")
+    employee    = request.args.get("employee", "")
     if report_type == "employee_occurrence":
-        recipients = _employee_occurrence_recipients()
+        base = _employee_occurrence_recipients()
+        supervisor_emails = _get_supervisor_emails(supervisor) if supervisor else []
+        recipients = list(dict.fromkeys(base + supervisor_emails))
+    elif report_type == "termination":
+        base = _termination_recipients()
+        supervisor_emails = _get_supervisor_emails(supervisor) if supervisor else []
+        recipients = list(dict.fromkeys(base + supervisor_emails))
     else:
-        recipients = _incident_recipients(supervisor)
+        base = _incident_recipients(supervisor)
+        supervisor_emails = _get_supervisor_emails(supervisor) if supervisor else []
+        recipients = list(dict.fromkeys(base + supervisor_emails))
     return jsonify({"recipients": recipients, "testing": TESTING_MODE})
 
 
@@ -803,8 +813,6 @@ def submit():
         if pdf_bytes:
             incident_type = data.get("Incident_Type", "")
             address       = data.get("Job_Address", "")
-            ts_label      = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename      = f"Incident_Report_{ts_label}.pdf"
             subject  = f"[Incident Report] {incident_type} -- {address}"
             link_line = f'<p><a href="{pdf_link}">View report online</a></p>' if pdf_link else ""
             html_intro = f"""
@@ -825,8 +833,13 @@ def submit():
     <p style="color:#aaa;font-size:11px;">Submitted via Opus Operations Incident Reporter</p>
   </div>
 </body></html>"""
-            extras     = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
-            recipients = _incident_recipients(data.get("Name_Of_Supervisor", "")) + extras
+            extras            = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            supervisor_name   = data.get("Name_Of_Supervisor", "")
+            supervisor_emails = _get_supervisor_emails(supervisor_name)
+            recipients        = list(dict.fromkeys(
+                _incident_recipients(supervisor_name) + supervisor_emails + extras
+            ))
+            log.info("INCIDENT — emailing to: %s", recipients)
             _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, filename)
     except Exception as e:
         log.error("Failed to email incident PDF: %s", e)
@@ -838,9 +851,8 @@ def submit():
     return jsonify({"success": True})
 
 
-# ── Email recipient logic ────────────────────────────────────────
-# Set to True to send to full recipient lists; False = test mode (chayaf only)
-TESTING_MODE = False
+
+
 
 _INCIDENT_BASE = [
     "hr@opusoperations.com",
@@ -864,6 +876,16 @@ _EMPLOYEE_OCCURRENCE_BASE = [
     "carlosc@opusoperations.com",
     "chayaf@opusoperations.com"
 ]
+_TERMINATION_BASE = [
+    "hr@opusoperations.com",
+    "reports@opusoperations.com",
+    "susank@opusoperations.com",
+    "aharon@opusoperations.com",
+    "thomas@opusoperations.com",
+    "jasonw@opusoperations.com",
+    "carlosc@opusoperations.com",
+    "chayaf@opusoperations.com"
+]
 
 def _incident_recipients(supervisor: str) -> list:
     recipients = list(_INCIDENT_BASE)
@@ -873,10 +895,60 @@ def _incident_recipients(supervisor: str) -> list:
         return ["chayaf@opusoperations.com"]
     return recipients
 
+def _get_employee_job_title(employee_name: str) -> str:
+    """Look up job_title from the employee table by full_name."""
+    try:
+        conn   = get_db_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT job_title FROM employee WHERE LOWER(full_name) = LOWER(?)",
+            employee_name.strip(),
+        )
+        row = cursor.fetchone()
+        conn.close()
+        return (row[0] or "").strip() if row else ""
+    except Exception as e:
+        log.error("DB error fetching job title for %r: %s", employee_name, e)
+    return ""
+
+
+def _get_supervisor_emails(employee_name: str) -> list:
+    """Return [supervisor_email, internal_supervisor_email] for the given employee name."""
+    log.info("SUPERVISORS — looking up emails for supervisor: %r", employee_name)
+    try:
+        conn   = get_db_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            """
+            SELECT e.email, s.email
+            FROM employee e
+            LEFT JOIN employee s ON e.internal_supervisor = s.employee_id
+            WHERE LOWER(e.full_name) = LOWER(?)
+            """,
+            employee_name.strip(),
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if row:
+            emails = [r for r in row if r and r.strip()]
+            log.info("SUPERVISORS — found: %s", emails)
+            return emails
+        else:
+            log.warning("SUPERVISORS — no row found for %r", employee_name)
+    except Exception as e:
+        log.error("SUPERVISORS — DB error for %r: %s", employee_name, e)
+    return []
+
+
 def _employee_occurrence_recipients() -> list:
     if TESTING_MODE:
         return ["chayaf@opusoperations.com"]
     return list(_EMPLOYEE_OCCURRENCE_BASE)
+
+def _termination_recipients() -> list:
+    if TESTING_MODE:
+        return ["chayaf@opusoperations.com"]
+    return list(_TERMINATION_BASE)
 
 
 # ── DB / PDF / Email helpers ─────────────────────────────────────
@@ -993,16 +1065,14 @@ def _save_termination_to_db(data, sid="", link=""):
         cursor.execute("""
             INSERT INTO dbo.termination_reports
                 (session_id, employee_name, supervisor_name,
-                 termination_date, reason_for_action, work_division,
-                 uniform_return, link)
-            VALUES (?,?,?,?,?,?,?,?)
+                 termination_date, reason_for_action, uniform_return, link)
+            VALUES (?,?,?,?,?,?,?)
         """,
             sid,
             data.get("Employee_name", data.get("Employee_Name", "")),
             data.get("Name_Of_Supervisor", ""),
-            _parse_dt(data.get("Date_Time_Of_Incident", data.get("Date_Time_Of_Occurrence", ""))),
+            _parse_dt(data.get("Termination_Date") or datetime.now().strftime("%Y-%m-%d")),
             data.get("Reason_for_Action", ""),
-            data.get("Work_Division", ""),
             data.get("Uniform_Return", ""),
             link,
         )
@@ -1075,11 +1145,16 @@ def _submit_employee_occurrence(data):
     is_termination = any("termination" in a.lower() for a in action_raw)
     if is_termination:
         try:
+            # Pull job title from employee table
+            job_title = _get_employee_job_title(employee)
+            term_data = dict(data)
+            term_data["Job_Title"] = job_title
+
             term_ts       = datetime.now().strftime("%Y%m%d_%H%M%S")
             term_filename = f"Termination_Form_{term_ts}.pdf"
-            term_bytes    = generate_termination_pdf(data)
+            term_bytes    = generate_termination_pdf(term_data)
             term_link     = _upload_pdf_report(term_bytes, term_filename)
-            _save_termination_to_db(data, sid, link=term_link)
+            _save_termination_to_db(term_data, sid, link=term_link)
             term_subject  = f"[Termination] {employee}"
             term_html     = f"""
 <html><body style="font-family:sans-serif;font-size:14px;color:#222;line-height:1.6;">
@@ -1087,22 +1162,25 @@ def _submit_employee_occurrence(data):
     <div style="background:#c0392b;color:#fff;padding:12px 16px;border-radius:6px;margin-bottom:16px;">
       <strong>Opus Operations -- Termination Form</strong>
     </div>
-    <p>A Termination Form has been automatically generated for the following employee.</p>
+    <p>A Termination Form has been submitted for the following employee.</p>
     <p style="color:#555;font-size:13px;">
-      <b>Employee:</b> {data.get("Employee_name", data.get("Employee_Name",""))}<br>
+      <b>Employee:</b> {employee}<br>
+      <b>Job Title:</b> {job_title or "—"}<br>
       <b>Supervisor:</b> {data.get("Name_Of_Supervisor","")}<br>
+      <b>Termination Date:</b> {data.get("Termination_Date", datetime.now().strftime("%Y-%m-%d"))}<br>
       <b>Reason:</b> {data.get("Reason_for_Action","")}<br>
       <b>Uniform Return:</b> {data.get("Uniform_Return","Not specified")}
     </p>
     {'<p><a href="' + term_link + '">View termination form online</a></p>' if term_link else ""}
     <hr style="border:none;border-top:1px solid #eee;margin-top:20px;">
-    <p style="color:#aaa;font-size:11px;">Auto-generated via Opus Operations Incident Reporter</p>
+    <p style="color:#aaa;font-size:11px;">Submitted via Opus Operations Incident Reporter</p>
   </div>
 </body></html>"""
-            extras     = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
-            recipients = _employee_occurrence_recipients() + extras
-            _send_pdf_report_email(recipients, term_subject, term_html, term_bytes, term_filename)
-            log.info("Termination form sent for %s", employee)
+            extras         = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            supervisor_emails = _get_supervisor_emails(data.get("Name_Of_Supervisor", ""))
+            term_recipients = list(dict.fromkeys(_termination_recipients() + supervisor_emails + extras))
+            _send_pdf_report_email(term_recipients, term_subject, term_html, term_bytes, term_filename)
+            log.info("Termination form sent for %s to %s", employee, term_recipients)
         except Exception as e:
             log.error("Failed to generate/email termination form: %s", e)
 
@@ -1111,8 +1189,6 @@ def _submit_employee_occurrence(data):
     # 3 -- Email PDF
     try:
         if pdf_bytes:
-            ts_label   = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename   = f"Employee_Occurrence_{ts_label}.pdf"
             subject    = f"[Employee Occurrence] {employee} -- {action_str}"
             link_line  = f'<p><a href="{pdf_link}">View report online</a></p>' if pdf_link else ""
             html_intro = f"""
@@ -1135,7 +1211,11 @@ def _submit_employee_occurrence(data):
   </div>
 </body></html>"""
             extras     = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
-            recipients = _employee_occurrence_recipients() + extras
+            supervisor_emails = _get_supervisor_emails(data.get("Name_Of_Supervisor", ""))
+            recipients = list(dict.fromkeys(
+                _employee_occurrence_recipients() + supervisor_emails + extras
+            ))
+            log.info("EMP_OCCURRENCE — emailing to: %s", recipients)
             _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, filename)
     except Exception as e:
         log.error("Failed to email employee occurrence PDF: %s", e)

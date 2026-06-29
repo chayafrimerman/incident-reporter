@@ -651,7 +651,7 @@
                 <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Counseling_Session"> Counseling Session</label>
                 <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Text" id="cb_Text" onchange="onTextChecked(this)"> Text</label>
                 <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Suspension"> Suspension</label>
-                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Termination"> Termination</label>
+                <label class="check-label"><input type="checkbox" class="action-taken-cb" value="Termination" id="cb_Termination" onchange="onTerminationChecked(this)"> Termination</label>
               </div>
             </div>
 
@@ -671,6 +671,7 @@
             </div>
 
           </div>
+
         </div>
 
         <!-- Narrative -->
@@ -724,7 +725,7 @@
           <div class="sig-grid">
 
             <div class="sig-field">
-              <label class="sig-label">Employee Signature <span class="required">*</span></label>
+              <label class="sig-label">Employee Signature <span style="font-size:10px;color:#9ca3af;">(optional)</span></label>
               <div class="sig-canvas-wrap">
                 <canvas id="emp_sig_canvas" class="sig-canvas"></canvas>
                 <span class="sig-placeholder">Sign here</span>
@@ -748,6 +749,34 @@
         <input type="hidden" name="report_type" value="employee_occurrence">
 
       </form>
+
+      <!-- ── Termination sub-form (shown only when Termination is checked) ── -->
+      <div id="terminationSection" style="display:none; margin-top:24px; border-top:2px solid #c0392b; padding-top:20px;">
+        <div class="section-label" style="color:#c0392b; border-bottom-color:#c0392b;">Termination Form</div>
+
+        <div class="form-section" style="margin-top:14px;">
+          <div class="field-grid">
+
+            <div class="field">
+              <label>Termination Date <span class="required">*</span></label>
+              <input type="date" id="term_date" name="Termination_Date">
+              <div style="font-size:11px;color:#9ca3af;margin-top:4px;">Defaults to today — update if different</div>
+            </div>
+
+            <div class="field">
+              <label>Uniform Return <span class="required">*</span></label>
+              <select name="Uniform_Return" id="sel_uniform_return">
+                <option value="">— Select —</option>
+                <option value="Yes">Yes — employee has to return their uniform</option>
+                <option value="No">No — employee does not have a uniform to return</option>
+              </select>
+            </div>
+
+          </div>
+        </div>
+
+
+      </div>
 
     </div>
 
@@ -1279,6 +1308,7 @@
   function populateEmployeeForm(fields) {
     currentReportType = "employee_occurrence";
     document.getElementById("formPanelTitle").textContent = "Employee Occurrence Report";
+    document.getElementById("formPlaceholder").style.display = "none";
     const form = document.getElementById("employeeForm");
     form.style.display = "block";
     requestAnimationFrame(resizeSigCanvases);
@@ -1327,6 +1357,17 @@
         if (suggestion.includes(label)) {
           const cb = form.querySelector(`.action-taken-cb[value="${val}"]`);
           if (cb) cb.checked = true;
+        }
+      }
+      // Show termination sub-form if termination was detected
+      if (suggestion.includes("termination")) {
+        const termCb = document.getElementById('cb_Termination');
+        if (termCb) { termCb.checked = true; onTerminationChecked(termCb); }
+        if (fields.Uniform_Return) {
+          document.getElementById('sel_uniform_return').value = fields.Uniform_Return;
+        }
+        if (fields.Termination_Date) {
+          document.getElementById('term_date').value = fields.Termination_Date;
         }
       }
     }
@@ -1433,6 +1474,13 @@
     if (actionsTaken.length === 0) { alert("Please select at least one Action Taken."); return; }
     data.Action_Taken = actionsTaken;
 
+    // Uniform return required if termination is checked
+    if (actionsTaken.includes("Termination")) {
+      const uniformReturn = document.getElementById("sel_uniform_return").value;
+      if (!uniformReturn) { alert("Please select a Uniform Return status for the termination."); return; }
+      data.Uniform_Return = uniformReturn;
+    }
+
     // If Text is checked, photos are mandatory
     const textChecked = actionsTaken.includes("Text");
     const photoFiles  = document.getElementById("emp_photo_input").files;
@@ -1447,7 +1495,6 @@
     // Signatures
     const empSig = getSigDataURL('emp_sig_canvas');
     const supSig = getSigDataURL('sup_sig_canvas');
-    if (!empSig) { alert("Please have the employee sign before submitting."); return; }
     if (!supSig) { alert("Please have the supervisor sign before submitting."); return; }
 
     data.Employee_name      = employee;
@@ -1456,6 +1503,11 @@
     data.extra_recipients   = [...extraRecipients];
     data.Employee_Signature  = empSig;
     data.Supervisor_Signature = supSig;
+
+    // Termination fields (only sent if termination is checked)
+    if (actionsTaken.includes("Termination")) {
+      data.Termination_Date = document.getElementById("term_date").value;
+    }
 
     _clientLog("SUBMIT", "submitted employee occurrence report");
     btn.disabled = true;
@@ -1495,6 +1547,9 @@
       document.getElementById("emp_prev_warnings_section").style.display = "none";
       clearSig('emp_sig_canvas');
       clearSig('sup_sig_canvas');
+      document.getElementById('terminationSection').style.display = 'none';
+      document.getElementById('term_date').value = '';
+      document.getElementById('sel_uniform_return').value = '';
     } else {
       document.getElementById("incidentForm").reset();
       document.querySelector('#incidentForm [name="Date_Time_Of_Report"]').value = nowLocal();
@@ -1640,6 +1695,17 @@
   // ── Text checkbox → show/hide photo upload ───────────────────
   function onTextChecked(cb) {
     document.getElementById('emp_photo_required_hint').style.display = cb.checked ? 'inline' : 'none';
+  }
+
+  function onTerminationChecked(cb) {
+    if (!cb.checked) {
+      document.getElementById('sel_uniform_return').value = '';
+      document.getElementById('terminationSection').style.display = 'none';
+    } else {
+      const termDateEl = document.getElementById('term_date');
+      if (!termDateEl.value) termDateEl.value = new Date().toISOString().slice(0, 10);
+      document.getElementById('terminationSection').style.display = 'block';
+    }
   }
 
   // Photo preview thumbnails
@@ -1824,6 +1890,7 @@
   document.getElementById("emp_sel_supervisor").addEventListener("change", () => {
     if (document.getElementById("recipientsPanel").style.display !== "none") loadRecipients();
   });
+
 </script>
 </body>
 </html>
