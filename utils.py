@@ -99,7 +99,8 @@ def call_claude(system_prompt, messages, max_tokens=1024, _retries=3):
                 continue
             if response.status_code != 200:
                 raise Exception(f"Claude API error: {response.text}")
-            text = response.json()["content"][0]["text"]
+            content_blocks = response.json().get("content", [])
+            text = next((c["text"] for c in content_blocks if c.get("type") == "text"), None)
             if not text or not text.strip():
                 last_error = "Empty response"
                 time.sleep(2 ** attempt)
