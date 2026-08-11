@@ -559,86 +559,30 @@ def generate_incident_pdf(data: dict) -> bytes:
 
 
 def generate_termination_pdf(data: dict) -> bytes:
-    """Generate a Termination Form PDF from employee occurrence data."""
-    from io import BytesIO as _BIO
-    buf = _BIO()
-    c   = rl_canvas.Canvas(buf, pagesize=letter)
-    W, H = letter
+    """Generate a Termination Form PDF."""
+    # Format termination date
+    raw_tdate = data.get("Termination_Date", "")
+    try:
+        from datetime import date as _date
+        term_date = _date.fromisoformat(raw_tdate).strftime("%m/%d/%Y") if raw_tdate else datetime.now().strftime("%m/%d/%Y")
+    except Exception:
+        term_date = raw_tdate or datetime.now().strftime("%m/%d/%Y")
 
-    # ── Logo ────────────────────────────────────────────────────────
-    logo = _logo_reader()
-    if logo:
-        lw, lh = 160, 50
-        c.drawImage(logo, (W - lw) / 2, H - PAD_X - lh, width=lw, height=lh, preserveAspectRatio=True, mask="auto")
-    y = H - PAD_X - 60
-
-    # ── Title ───────────────────────────────────────────────────────
-    c.setFont("Helvetica-Bold", 14)
-    c.setFillColor(TEAL)
-    c.drawCentredString(W / 2, y, "TERMINATION FORM")
-    y -= 24
-    c.setFillColor(BLACK)
-
-    # ── Helper to draw a labeled field row ──────────────────────────
-    def _row(label, value, y_pos):
-        c.setFont("Helvetica-Bold", VAL_FS)
-        c.setFillColor(TEAL)
-        c.drawString(PAD_X, y_pos, label + ":")
-        c.setFont("Helvetica", VAL_FS)
-        c.setFillColor(BLACK)
-        label_w = c.stringWidth(label + ": ", "Helvetica-Bold", VAL_FS)
-        c.drawString(PAD_X + label_w, y_pos, str(value or ""))
-        return y_pos - LINE_H
-
-    # ── Row 1: Employee Name | Termination Date ──────────────────────
-    emp_name = data.get("Employee_name", data.get("Employee_Name", ""))
-    term_date = _fmt_dt(data.get("Date_Time_Of_Incident", data.get("Date_Time_Of_Occurrence", "")))
-    c.setFont("Helvetica-Bold", VAL_FS); c.setFillColor(TEAL)
-    c.drawString(PAD_X, y, "Employee Name:")
-    c.setFont("Helvetica", VAL_FS); c.setFillColor(BLACK)
-    c.drawString(PAD_X + 100, y, emp_name)
-    c.setFont("Helvetica-Bold", VAL_FS); c.setFillColor(TEAL)
-    c.drawString(W / 2, y, "Termination Date:")
-    c.setFont("Helvetica", VAL_FS); c.setFillColor(BLACK)
-    c.drawString(W / 2 + 110, y, term_date)
-    y -= LINE_H
-
-    # ── Row 2: Reason | Work Division ────────────────────────────────
-    reason = data.get("Reason_for_Action", "")
-    division = data.get("Work_Division", "")
-    c.setFont("Helvetica-Bold", VAL_FS); c.setFillColor(TEAL)
-    c.drawString(PAD_X, y, "Reason for Termination:")
-    c.setFont("Helvetica", VAL_FS); c.setFillColor(BLACK)
-    wrapped = _wrap(reason, 45)
-    for i, line in enumerate(wrapped):
-        c.drawString(PAD_X + 158, y - i * 14, line)
-    y -= max(len(wrapped), 1) * 14 + 4
-    c.setFont("Helvetica-Bold", VAL_FS); c.setFillColor(TEAL)
-    c.drawString(PAD_X, y, "Work Division:")
-    c.setFont("Helvetica", VAL_FS); c.setFillColor(BLACK)
-    c.drawString(PAD_X + 95, y, division)
-    y -= LINE_H
-
-    # ── Row 3: Manager | Supervisor ──────────────────────────────────
+    emp_name   = data.get("Employee_name", data.get("Employee_Name", ""))
+    job_title  = data.get("Job_Title", data.get("Employee_Title", ""))
     supervisor = data.get("Name_Of_Supervisor", "")
-    y = _row("Manager / Supervisor", supervisor, y)
+    reason     = data.get("Reason_for_Action", "")
+    uniform    = data.get("Uniform_Return", "Not specified")
 
-    # ── Row 4: Uniform Return (mandatory) ────────────────────────────
-    uniform = data.get("Uniform_Return", "")
-    y -= 4
-    c.setFont("Helvetica-Bold", VAL_FS); c.setFillColor(TEAL)
-    c.drawString(PAD_X, y, "Does the employee have to return their uniform?")
-    c.setFont("Helvetica", VAL_FS); c.setFillColor(BLACK)
-    c.drawString(PAD_X + 316, y, str(uniform or "Not specified"))
-    y -= LINE_H
-
-    # ── Footer line ──────────────────────────────────────────────────
-    c.setStrokeColor(TEAL)
-    c.line(PAD_X, y, W - PAD_X, y)
-
-    c.save()
-    buf.seek(0)
-    return buf.read()
+    f = _Form()
+    f.header("Termination Form")
+    f.row2("Employee Name",       emp_name,
+           "Termination Date",    term_date)
+    f.row2("Job Title",           job_title,
+           "Manager / Supervisor", supervisor)
+    f.row1("Does the employee have to return their uniform?", uniform)
+    f.footer()
+    return f.get_bytes()
 
 
 def generate_employee_occurrence_pdf(data: dict) -> bytes:
