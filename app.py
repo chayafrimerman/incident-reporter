@@ -1,3 +1,4 @@
+#%%
 from flask import Flask, request, jsonify, send_from_directory
 import requests
 from flask_cors import CORS
@@ -20,10 +21,12 @@ from utils import (ANTHROPIC_API_KEY,
     emp_phase4_check, emp_finalize,
     EMPTY_STATE_EMPLOYEE, review_and_patch,
 )
-from credentials import get_db_conn, EMAIL, APP_PASSWORD, TESTING_MODE
+from credentials import get_db_conn, EMAIL, APP_PASSWORD, TESTING_MODE, twilio_account_sid, twilio_auth_token, twilio_phone_number
 from email.mime.application import MIMEApplication
 from pdf_generator import generate_incident_pdf, generate_employee_occurrence_pdf, generate_termination_pdf
-
+import re
+from twilio.rest import Client
+#%%
 
 # ── Email / SMTP config ─────────────────────────────────────────
 # Set these in your environment or credentials file.
@@ -843,7 +846,6 @@ def submit():
             _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, filename)
     except Exception as e:
         log.error("Failed to email incident PDF: %s", e)
-
     # 3 -- Clear session
     if sid in _sessions:
         del _sessions[sid]
@@ -939,7 +941,40 @@ def _get_supervisor_emails(employee_name: str) -> list:
         log.error("SUPERVISORS — DB error for %r: %s", employee_name, e)
     return []
 
+def _get_employee_phone(employee_name):
+    """Look up employee mobile phone from SQL Server — returns first valid number."""
+    
+    def is_valid(phone):
+        if not phone:
+            return False
+        # Strip everything except digits
+        digits = re.sub(r'\D', '', phone)
+        return len(digits) >= 10  # must have at least 10 digits
 
+    try:
+        conn   = get_db_conn()
+        cursor = conn.cursor()
+        cursor.execute(
+            "SELECT phone, work_phone, mobile_phone FROM employee WHERE full_name = ?",
+            employee_name
+        )
+        row = cursor.fetchone()
+        conn.close()
+        if not row:
+            return None
+        for phone in row:
+            if is_valid(phone):
+                # Format as E.164 for Twilio (+1XXXXXXXXXX)
+                digits = re.sub(r'\D', '', phone)
+                if len(digits) == 10:
+                    digits = '1' + digits
+                return '+' + digits
+        return None  # no valid number found
+    except Exception as e:
+        log.error("Failed to get phone for %s: %s", employee_name, e)
+        return None
+
+    
 def _employee_occurrence_recipients() -> list:
     if TESTING_MODE:
         return ["chayaf@opusoperations.com"]
@@ -1184,6 +1219,28 @@ def _submit_employee_occurrence(data):
         except Exception as e:
             log.error("Failed to generate/email termination form: %s", e)
 
+        # Text the employee about termination
+        try:
+            phone = _get_employee_phone(employee)
+            if phone:
+    
+                msg = (
+                    f"Opus Operations Notice\n"
+                    f"A Termination Form has been processed for {employee}.\n"
+                    f"View form: {term_link}"
+                )
+                Client(twilio_account_sid, twilio_auth_token).messages.create(
+                    body=msg, from_=twilio_phone_number, to=phone
+                )
+                log.info("Termination SMS sent to %s (%s)", employee, phone)
+            else:
+                Client(twilio_account_sid, twilio_auth_token).messages.create(
+                                    body=msg, from_=twilio_phone_number, to='+15634193601'
+                                )
+
+        except Exception as e:
+            log.error("Failed to send termination SMS: %s", e)
+
 
 
     # 3 -- Email PDF
@@ -1220,7 +1277,29 @@ def _submit_employee_occurrence(data):
     except Exception as e:
         log.error("Failed to email employee occurrence PDF: %s", e)
 
-    # 3 -- Clear session
+    # 4 -- Text the employee
+    try:
+        phone = _get_employee_phone(employee)
+        if phone:
+            
+            msg = (
+                f"Opus Operations Notice\n"
+                f"An Employee Occurrence Report has been filed for {employee}.\n"
+                f"Action: {action_str}\n"
+                f"View report: {pdf_link}"
+            )
+            Client(twilio_account_sid, twilio_auth_token).messages.create(
+                body=msg, from_=twilio_phone_number, to=phone
+            )
+            log.info("SMS sent to %s (%s)", employee, phone)
+        else:
+            Client(twilio_account_sid, twilio_auth_token).messages.create(
+                            body=msg, from_=twilio_phone_number, to='+15634193601'
+                        )
+    except Exception as e:
+        log.error("Failed to send SMS to employee: %s", e)
+
+    # 4 -- Clear session
     if sid in _sessions:
         del _sessions[sid]
 
