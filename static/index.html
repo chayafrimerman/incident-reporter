@@ -810,6 +810,7 @@
   let formReady = false;
   let currentReportType = "incident";  // "incident" | "employee_occurrence"
   let extraRecipients = [];  // user-added emails
+  let removedRecipients = [];  // tracks base recipients the user removed
 
   // ── Recipients panel ─────────────────────────────────────────
   async function loadRecipients() {
@@ -825,21 +826,22 @@
   }
 
   function renderRecipientChips(recipients, testing) {
-    const container = document.getElementById("recipientsChips");
-    container.innerHTML = "";
-    recipients.forEach(email => {
-      const chip = document.createElement("span");
-      chip.className = "chip";
-      chip.textContent = email;
-      container.appendChild(chip);
-    });
-    extraRecipients.forEach((email, i) => {
-      const chip = document.createElement("span");
-      chip.className = "chip extra";
-      chip.innerHTML = `${email} <button class="chip-remove" onclick="removeExtra(${i})" title="Remove">×</button>`;
-      container.appendChild(chip);
-    });
-    document.getElementById("testingBadge").style.display = testing ? "" : "none";
+      const container = document.getElementById("recipientsChips");
+      container.innerHTML = "";
+      const filtered = recipients.filter(e => !removedRecipients.includes(e));
+      filtered.forEach(email => {
+        const chip = document.createElement("span");
+        chip.className = "chip";
+        chip.innerHTML = `${email} <button class="chip-remove" onclick="removeBase('${email}')" title="Remove">×</button>`;
+        container.appendChild(chip);
+      });
+      extraRecipients.forEach((email, i) => {
+        const chip = document.createElement("span");
+        chip.className = "chip extra";
+        chip.innerHTML = `${email} <button class="chip-remove" onclick="removeExtra(${i})" title="Remove">×</button>`;
+        container.appendChild(chip);
+      });
+      document.getElementById("testingBadge").style.display = testing ? "" : "none";
   }
 
   function addExtraEmail() {
@@ -855,6 +857,12 @@
 
   function removeExtra(index) {
     extraRecipients.splice(index, 1);
+    loadRecipients();
+  }
+  function removeBase(email) {
+    if (!removedRecipients.includes(email)) {
+        removedRecipients.push(email);
+    }
     loadRecipients();
   }
 
@@ -1428,6 +1436,7 @@
     data.Employee_name      = employee;
     data.Name_Of_Supervisor = supervisor;
     data.extra_recipients   = [...extraRecipients];
+    data.removed_recipients = [...removedRecipients];
 
     _clientLog("SUBMIT", "submitted incident report");
     btn.disabled = true;
@@ -1501,6 +1510,7 @@
     data.Name_Of_Supervisor = supervisor;
     data.report_type        = "employee_occurrence";
     data.extra_recipients   = [...extraRecipients];
+    data.removed_recipients = [...removedRecipients];
     data.Employee_Signature  = empSig;
     data.Supervisor_Signature = supSig;
 

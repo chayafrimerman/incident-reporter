@@ -768,6 +768,7 @@ def email_recipients():
         base = _employee_occurrence_recipients()
         supervisor_emails = _get_supervisor_emails(supervisor) if supervisor else []
         recipients = list(dict.fromkeys(base + supervisor_emails))
+        
     elif report_type == "termination":
         base = _termination_recipients()
         supervisor_emails = _get_supervisor_emails(supervisor) if supervisor else []
@@ -836,12 +837,15 @@ def submit():
     <p style="color:#aaa;font-size:11px;">Submitted via Opus Operations Incident Reporter</p>
   </div>
 </body></html>"""
-            extras            = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
             supervisor_name   = data.get("Name_Of_Supervisor", "")
             supervisor_emails = _get_supervisor_emails(supervisor_name)
-            recipients        = list(dict.fromkeys(
-                _incident_recipients(supervisor_name) + supervisor_emails + extras
+            extras    = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            removed   = set(data.get("removed_recipients", []))
+            recipients = list(dict.fromkeys(
+                [r for r in (_incident_recipients(supervisor_name) + supervisor_emails + extras)
+                if r not in removed]
             ))
+            
             log.info("INCIDENT — emailing to: %s", recipients)
             _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, filename)
     except Exception as e:
@@ -1211,9 +1215,14 @@ def _submit_employee_occurrence(data):
     <p style="color:#aaa;font-size:11px;">Submitted via Opus Operations Incident Reporter</p>
   </div>
 </body></html>"""
-            extras         = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+
+            extras    = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            removed   = set(data.get("removed_recipients", []))
             supervisor_emails = _get_supervisor_emails(data.get("Name_Of_Supervisor", ""))
-            term_recipients = list(dict.fromkeys(_termination_recipients() + supervisor_emails + extras))
+            term_recipients = list(dict.fromkeys(
+                [r for r in (_termination_recipients() + supervisor_emails + extras)
+                if r not in removed]
+            ))
             _send_pdf_report_email(term_recipients, term_subject, term_html, term_bytes, term_filename)
             log.info("Termination form sent for %s to %s", employee, term_recipients)
         except Exception as e:
@@ -1267,10 +1276,12 @@ def _submit_employee_occurrence(data):
     <p style="color:#aaa;font-size:11px;">Submitted via Opus Operations Incident Reporter</p>
   </div>
 </body></html>"""
-            extras     = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            extras    = [e.strip() for e in data.get("extra_recipients", []) if e.strip()]
+            removed   = set(data.get("removed_recipients", []))
             supervisor_emails = _get_supervisor_emails(data.get("Name_Of_Supervisor", ""))
             recipients = list(dict.fromkeys(
-                _employee_occurrence_recipients() + supervisor_emails + extras
+                [r for r in (_employee_occurrence_recipients() + supervisor_emails + extras)
+                if r not in removed]
             ))
             log.info("EMP_OCCURRENCE — emailing to: %s", recipients)
             _send_pdf_report_email(recipients, subject, html_intro, pdf_bytes, filename)
